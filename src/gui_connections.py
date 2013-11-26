@@ -74,13 +74,13 @@ class NewConnectionDialog(wx.Dialog):
 
 class ConnectionsPanel(wx.Panel):
     """This Panel is for managing and displaying connections"""
-    def __init__(self, parent, con_mgr, *args, **kwargs):
+    def __init__(self, parent, session, *args, **kwargs):
         wx.Panel.__init__(self, parent, *args, **kwargs)
         self.parent = parent
-        self.con_mgr = con_mgr
+        self.session = session
 
         new_btn = wx.Button(self, label="New Connection")
-        new_btn.Bind(wx.EVT_BUTTON, self.on_new_connection)
+        new_btn.Bind(wx.EVT_BUTTON, self.on_new)
 
         height = parent.GetSize()[1] - CON_PANEL_HEIGHT_OFFSET
         self.scroll_window = scrolled.ScrolledPanel(self, wx.ID_ANY,
@@ -109,10 +109,10 @@ class ConnectionsPanel(wx.Panel):
         self.scroll_window.SetAutoLayout(1)
         self.scroll_window.SetupScrolling()
 
-    def on_new_connection(self, event):
+    def on_new(self, event):
         new_box = NewConnectionDialog(self)
         if new_box.ShowModal() == wx.ID_OK:
-            self.con_mgr.new_connection(new_box.alias.GetValue(),
+            self.session.new_connection(new_box.alias.GetValue(),
                                         new_box.address.GetValue())
 
             btn = wx.Button(self.scroll_window, label="Remove")
@@ -124,6 +124,7 @@ class ConnectionsPanel(wx.Panel):
         new_box.Destroy()
 
     def on_remove(self, event):
+        # TODO: remove connection from session
         btn = event.GetEventObject()
         self.scroll_sizer.Remove(btn)
         btn.Destroy()

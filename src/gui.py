@@ -103,7 +103,7 @@ class MainFrame(wx.Frame):
         self.CreateStatusBar(style=0)
 
         # Add panels
-        self.connections_panel = ConnectionsPanel(self, self.session.manager(),
+        self.connections_panel = ConnectionsPanel(self, self.session,
                                                   size=(300,300))
         self.display_panel = DisplayPanel(self)
         self.options_panel = OptionsPanel(self)

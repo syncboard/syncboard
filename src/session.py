@@ -17,6 +17,12 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
+"""
+    Session is the class that manages all the non UI work. Any UI implementation
+    would create and interact with an instance of a Session to provide actual
+    functionality.
+"""
+
 from connections import ConnectionManager
 
 class Session:
@@ -25,5 +31,8 @@ class Session:
         #       to preserve the list between sessions
         self.con_mgr = ConnectionManager()
 
-    def manager(self):
-        return self.con_mgr
+    def new_connection(self, alias, address):
+        self.con_mgr.new_connection(alias, address)
+
+    def del_connection(self, address):
+        self.con_mgr.del_connection(address)
