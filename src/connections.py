@@ -23,15 +23,17 @@ class ConnectionManager:
     def __init__(self):
         self.connections = []
 
+    def get_connection(self, address):
+        for con in self.connections:
+            if con.address == address:
+                return con
+        return None
+
     def new_connection(self, alias, address):
         self.connections.append(Connection(alias, address, Connection.PENDING))
 
     def del_connection(self, address):
-        c = None
-        for con in self.connections:
-            if con.address == addres:
-                c = conn
-                break
+        c = self.get_connection(address)
         if c:
             self.connections.remove(c)
 

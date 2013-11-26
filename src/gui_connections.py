@@ -72,6 +72,14 @@ class NewConnectionDialog(wx.Dialog):
         self.SetSizerAndFit(sizer)
         self.Center(wx.BOTH)
 
+class Row:
+    def __init__(self, sizer, button, label, connection, line):
+        self.sizer = sizer
+        self.button = button
+        self.label = label
+        self.connection = connection
+        self.line = line
+
 class ConnectionsPanel(wx.Panel):
     """This Panel is for managing and displaying connections"""
     def __init__(self, parent, session, *args, **kwargs):
@@ -104,6 +112,8 @@ class ConnectionsPanel(wx.Panel):
 
         self.SetSizerAndFit(self.sizer)
 
+        self.btn_to_row = {}
+
     def config_size(self):
         self.scroll_window.SetSizer(self.scroll_sizer)
         self.scroll_window.SetAutoLayout(1)
@@ -112,21 +122,43 @@ class ConnectionsPanel(wx.Panel):
     def on_new(self, event):
         new_box = NewConnectionDialog(self)
         if new_box.ShowModal() == wx.ID_OK:
-            self.session.new_connection(new_box.alias.GetValue(),
-                                        new_box.address.GetValue())
+            alias = new_box.alias.GetValue()
+            addr = new_box.address.GetValue()
+            self.session.new_connection(alias, addr)
+            conn = self.session.get_connection(addr)
+            
+            name = addr
+            if alias: name = alias
+            
+            rmv_btn = wx.Button(self.scroll_window, wx.ID_ANY, size=(20,20),
+                                label="X")
+            rmv_btn.Bind(wx.EVT_BUTTON, self.on_remove)
 
-            btn = wx.Button(self.scroll_window, label="Remove")
-            btn.Bind(wx.EVT_BUTTON, self.on_remove)
-            self.scroll_sizer.Add(btn, proportion=0, flag=wx.ALL, border=5)
+            label = wx.StaticText(self.scroll_window, label=name)
+            line = wx.StaticLine(self.scroll_window)
+
+            sizer_h = wx.BoxSizer(wx.HORIZONTAL)
+            self.btn_to_row[rmv_btn] = Row(sizer_h, rmv_btn, label, conn, line)
+            sizer_h.Add(rmv_btn, proportion=0, flag=wx.ALL, border=5)
+            sizer_h.Add(label, proportion=0, flag=wx.ALL, border=5)
+            
+            self.scroll_sizer.Add(sizer_h)
+            self.scroll_sizer.Add(line, 0, wx.EXPAND)
 
             self.config_size()
             
         new_box.Destroy()
 
     def on_remove(self, event):
-        # TODO: remove connection from session
         btn = event.GetEventObject()
-        self.scroll_sizer.Remove(btn)
-        btn.Destroy()
+        row = self.btn_to_row[btn]
+        self.scroll_sizer.Remove(row.sizer)
+        
+        row.button.Destroy()
+        row.label.Destroy()
+        row.line.Destroy()
+        del self.btn_to_row[btn]
 
         self.config_size()
+
+        self.session.del_connection(row.connection.address)

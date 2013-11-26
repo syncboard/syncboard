@@ -31,8 +31,12 @@ class Session:
         #       to preserve the list between sessions
         self.con_mgr = ConnectionManager()
 
+    def get_connection(self, address):
+        return self.con_mgr.get_connection(address)
+
     def new_connection(self, alias, address):
         self.con_mgr.new_connection(alias, address)
 
     def del_connection(self, address):
         self.con_mgr.del_connection(address)
+
