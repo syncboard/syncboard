@@ -17,33 +17,19 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
+"""
+    This file is the user's entrance to the gui and implements the main frame
+    of the gui.
+"""
+
 import wx, info
+from gui_info import AboutDialog
+from gui_connections import ConnectionsPanel
+from session import Session
 
-class ConnectionsPanel(wx.Panel):
-    """This Panel is for managing and displaying connections"""
-    def __init__(self, parent, *args, **kwargs):
-        wx.Panel.__init__(self, parent, *args, **kwargs)
-        self.parent = parent
+FRAME_SIZE = (500, 500)
 
-        new_btn = wx.Button(self, label="New Connection")
-        new_btn.Bind(wx.EVT_BUTTON, self.on_new_connection)
-        
-        text = wx.TextCtrl(self, style=wx.TE_MULTILINE)
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(new_btn,
-                  proportion=0,
-                  flag=wx.EXPAND | wx.ALL,
-                  border=5)
-        sizer.Add(text,
-                  proportion=1,
-                  flag=wx.ALIGN_LEFT | wx.EXPAND | wx.ALL,
-                  border=5)
-
-        self.SetSizerAndFit(sizer)
-
-    def on_new_connection(self, event):
-        pass
+# TODO: move options and display to their own files
 
 class OptionsPanel(wx.Panel):
     """This Panel is for managing options"""
@@ -52,7 +38,7 @@ class OptionsPanel(wx.Panel):
         self.parent = parent
 
         self.hotkey_cb = wx.CheckBox(self, id=wx.ID_ANY,
-                                    label="Enable Shortcut Keys (Ctrl+Shift+C/V)")
+                                     label="Enable Shortcut Keys (Ctrl+Shift+C/V)")
         self.hotkey_cb.SetValue(True)
         self.auto_sync_cb = wx.CheckBox(self, id=wx.ID_ANY,
                                        label="Automatically Sync")
@@ -96,6 +82,8 @@ class MainFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
         wx.Frame.__init__(self, *args, **kwargs)
 
+        self.session = Session()
+
         # Build the menu bar
         menu_bar = wx.MenuBar()
 
@@ -104,17 +92,19 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_quit, exit_item)
 
         help_menu = wx.Menu()
-        about_item = help_menu.Append(wx.ID_ABOUT, text="&About", help="Information about this program")
+        about_item = help_menu.Append(wx.ID_ABOUT, text="&About",
+                                      help="Information about this program")
         self.Bind(wx.EVT_MENU, self.on_about, about_item)
 
         menu_bar.Append(file_menu, "&File")
         menu_bar.Append(help_menu, "&Help")
         self.SetMenuBar(menu_bar)
 
-        self.CreateStatusBar()
+        self.CreateStatusBar(style=0)
 
         # Add panels
-        self.connections_panel = ConnectionsPanel(self, size=(300,300))
+        self.connections_panel = ConnectionsPanel(self, self.session.manager(),
+                                                  size=(300,300))
         self.display_panel = DisplayPanel(self)
         self.options_panel = OptionsPanel(self)
 
@@ -142,7 +132,7 @@ class MainFrame(wx.Frame):
 ##        self.sizer_h.Fit(self) # Maybe use this when all panels have content
 
     def on_about(self, event):
-        aboutbox = info.AboutDialog(self)
+        aboutbox = AboutDialog(self)
         aboutbox.ShowModal()
         aboutbox.Destroy()
 
@@ -151,6 +141,7 @@ class MainFrame(wx.Frame):
 
 if __name__ == '__main__':
     app = wx.App(False)
-    frame = MainFrame(None, title=info.NAME, size=(500, 500))
+    frame = MainFrame(None, title=info.NAME, size=FRAME_SIZE,
+                      style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
     frame.Show()
     app.MainLoop()

@@ -17,21 +17,30 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-"""
-    This file contains information about the application itself.
-"""
+MAX_ALIAS_LENGTH = 15
 
-from os.path import join
+class ConnectionManager:
+    def __init__(self):
+        self.connections = []
 
-f = open(join(".." + "/" + "LICENSE"), "r")
-msg = f.read()
-f.close()
+    def new_connection(self, alias, address):
+        self.connections.append(Connection(alias, address, Connection.PENDING))
 
-LICENSE_TEXT = msg
-DESCRIPTION_TEXT = "a cross-platform clipboard syncing tool"
-      
-NAME = "Syncboard"
-VERSION = "0.0.0"
-COPYRIGHT = "(C) 2013"
-WEBSITE = ("https://github.com/syncboard/syncboard", "Source on Github")
-DEVELOPERS = [ "Brandon Edgren", "Nat Mote"]
+    def del_connection(self, address):
+        c = None
+        for con in self.connections:
+            if con.address == addres:
+                c = conn
+                break
+        if c:
+            self.connections.remove(c)
+
+class Connection:
+    NOT_CONNECTED, CONNECTED, PENDING = range(3)
+    def __init__(self, alias, address, status):
+        self.alias = alias
+        self.address = address
+        self.status = status
+
+    def __str__(self):
+        return "%s (%s) Status: %s" %(self.address, self.alias, self.status)

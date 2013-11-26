@@ -17,21 +17,13 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-"""
-    This file contains information about the application itself.
-"""
+from connections import ConnectionManager
 
-from os.path import join
+class Session:
+    def __init__(self):
+        # TODO: consider saving and loading the connections list to a file
+        #       to preserve the list between sessions
+        self.con_mgr = ConnectionManager()
 
-f = open(join(".." + "/" + "LICENSE"), "r")
-msg = f.read()
-f.close()
-
-LICENSE_TEXT = msg
-DESCRIPTION_TEXT = "a cross-platform clipboard syncing tool"
-      
-NAME = "Syncboard"
-VERSION = "0.0.0"
-COPYRIGHT = "(C) 2013"
-WEBSITE = ("https://github.com/syncboard/syncboard", "Source on Github")
-DEVELOPERS = [ "Brandon Edgren", "Nat Mote"]
+    def manager(self):
+        return self.con_mgr
