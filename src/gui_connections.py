@@ -23,6 +23,7 @@
 
 import wx
 import wx.lib.scrolledpanel as scrolled
+from wx.lib.pubsub import Publisher
 from connections import MAX_ALIAS_LENGTH
 
 CON_PANEL_WIDTH = 140
@@ -94,7 +95,7 @@ class ConnectionsPanel(wx.Panel):
         self.scroll_window = scrolled.ScrolledPanel(self, wx.ID_ANY,
                                  size=(CON_PANEL_WIDTH, height),
                                  style = wx.SUNKEN_BORDER,
-                                 name="connection list" )
+                                 name="connection list")
         self.scroll_window.SetBackgroundColour("WHITE")
         self.scroll_sizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -132,6 +133,8 @@ class ConnectionsPanel(wx.Panel):
             
             rmv_btn = wx.Button(self.scroll_window, wx.ID_ANY, size=(20,20),
                                 label="X")
+            rmv_btn.Bind(wx.EVT_ENTER_WINDOW, self.on_enter_remove)
+            rmv_btn.Bind(wx.EVT_LEAVE_WINDOW, self.on_leave_remove)
             rmv_btn.Bind(wx.EVT_BUTTON, self.on_remove)
 
             label = wx.StaticText(self.scroll_window, label=name)
@@ -140,7 +143,10 @@ class ConnectionsPanel(wx.Panel):
             sizer_h = wx.BoxSizer(wx.HORIZONTAL)
             self.btn_to_row[rmv_btn] = Row(sizer_h, rmv_btn, label, conn, line)
             sizer_h.Add(rmv_btn, proportion=0, flag=wx.ALL, border=5)
-            sizer_h.Add(label, proportion=0, flag=wx.ALL, border=5)
+            sizer_h.Add(label,
+                        proportion=0,
+                        flag=wx.ALIGN_CENTER_VERTICAL | wx.ALL,
+                        border=5)
             
             self.scroll_sizer.Add(sizer_h)
             self.scroll_sizer.Add(line, 0, wx.EXPAND)
@@ -148,6 +154,13 @@ class ConnectionsPanel(wx.Panel):
             self.config_size()
             
         new_box.Destroy()
+
+    def on_enter_remove(self, event):
+        msg = "Remove connection from list"
+        Publisher().sendMessage(('change_statusbar'), msg)
+
+    def on_leave_remove(self, event):
+        Publisher().sendMessage(('change_statusbar'), "")
 
     def on_remove(self, event):
         btn = event.GetEventObject()

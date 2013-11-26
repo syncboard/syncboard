@@ -23,6 +23,7 @@
 """
 
 import wx, info
+from wx.lib.pubsub import Publisher
 from gui_info import AboutDialog
 from gui_connections import ConnectionsPanel
 from session import Session
@@ -69,10 +70,7 @@ class DisplayPanel(wx.Panel):
         wx.Panel.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         
-        text = wx.TextCtrl(self, style=wx.TE_MULTILINE)
-
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(text, 1, wx.ALIGN_LEFT | wx.ALL | wx.EXPAND, 5)
 
         self.SetSizerAndFit(sizer)
 
@@ -101,6 +99,7 @@ class MainFrame(wx.Frame):
         self.SetMenuBar(menu_bar)
 
         self.CreateStatusBar(style=0)
+        Publisher().subscribe(self.change_statusbar, 'change_statusbar')
 
         # Add panels
         self.connections_panel = ConnectionsPanel(self, self.session,
@@ -130,6 +129,9 @@ class MainFrame(wx.Frame):
         self.SetSizer(self.sizer_h)
         self.SetAutoLayout(1)
 ##        self.sizer_h.Fit(self) # Maybe use this when all panels have content
+
+    def change_statusbar(self, msg):
+        self.SetStatusText(msg.data)
 
     def on_about(self, event):
         aboutbox = AboutDialog(self)
