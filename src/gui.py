@@ -99,7 +99,7 @@ class MainFrame(wx.Frame):
         self.SetMenuBar(menu_bar)
 
         self.CreateStatusBar(style=0)
-        Publisher().subscribe(self.change_statusbar, 'change_statusbar')
+        Publisher().subscribe(self.change_statusbar, "change_statusbar")
 
         # Add panels
         self.connections_panel = ConnectionsPanel(self, self.session,

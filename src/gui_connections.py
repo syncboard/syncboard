@@ -26,7 +26,7 @@ import wx.lib.scrolledpanel as scrolled
 from wx.lib.pubsub import Publisher
 from connections import MAX_ALIAS_LENGTH, Connection
 
-CON_PANEL_WIDTH = 140
+CON_PANEL_WIDTH = 285
 CON_PANEL_HEIGHT_OFFSET = 115 # subtracted from its containers height
 
 class NewConnectionDialog(wx.Dialog):
@@ -73,52 +73,119 @@ class NewConnectionDialog(wx.Dialog):
         self.SetSizerAndFit(sizer)
         self.Center(wx.BOTH)
 
-class Row:
-    DEFAULT_COLOR = (255, 255, 255)
-    REQUEST_COLOR = (255, 255, 100)
-    ACTIVE_COLOR = (100, 255, 100)
-    def __init__(self, button, label, connection, line):
+class ConnectionWindow(wx.Panel):
+    """This Panel is individual connections"""
+    def __init__(self, parent, connection, *args, **kwargs):
+        wx.Panel.__init__(self, parent, *args, **kwargs)
+        self.parent = parent
+        self.connection = connection
+        
+        self.sizer_v = wx.BoxSizer(wx.VERTICAL)
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer.Add(button, proportion=0, flag=wx.ALL, border=5)
-        self.sizer.Add(label,
+
+        self.rmv_btn = wx.Button(self, wx.ID_ANY, size=(20,20), label="X")
+        self.rmv_btn.Bind(wx.EVT_ENTER_WINDOW, self.on_enter_remove)
+        self.rmv_btn.Bind(wx.EVT_LEAVE_WINDOW, self.on_leave_remove)
+        self.rmv_btn.Bind(wx.EVT_BUTTON, self.on_remove)
+        self.sizer.Add(self.rmv_btn, proportion=0, flag=wx.ALL, border=5)
+
+        size = (MAX_ALIAS_LENGTH * 8, 13)
+        name = self.connection.address
+        if self.connection.alias: name = self.connection.alias
+        self.label = wx.StaticText(self, size=size, label=name)
+        self.sizer.Add(self.label,
                        proportion=0,
                        flag=wx.ALIGN_CENTER_VERTICAL | wx.ALL,
                        border=5)
-        # TODO: Add accept/decline buttons for when pending
+
+        size = (50, 20)
+        if self.connection.status == Connection.REQUEST:
+            self.accept_button = wx.Button(self, wx.ID_ANY,
+                                           size=size, label="Accept")
+            self.accept_button.Bind(wx.EVT_BUTTON, self.on_accept)
+            self.sizer.Add(self.accept_button, proportion=0, flag=wx.ALL, border=5)
+            
+            self.reject_button = wx.Button(self, wx.ID_ANY,
+                                           size=size, label="Reject")
+            self.reject_button.Bind(wx.EVT_BUTTON, self.on_reject)
+            self.sizer.Add(self.reject_button, proportion=0, flag=wx.ALL, border=5)
+        else:
+            self.sizer.AddSpacer((120, 20))
+
+
+        self.sizer_v.Add(self.sizer)
         
-        self.button = button
-        self.label = label
-        self.connection = connection
-        self.line = line
-        self.color = self.DEFAULT_COLOR
-        ### For testing:
-        self.time = 0
-        self.pending = 20
-        self.connected = 50
-        ###
-        self.color = self.update_color()
+        self.line = wx.StaticLine(self)
+        self.sizer_v.Add(self.line, 0, wx.EXPAND)
 
-    def update_color(self):
-        if self.connection.status == Connection.PENDING:
-            if self.color == self.DEFAULT_COLOR:
-                self.color = self.REQUEST_COLOR
-            else:
-                self.color = self.DEFAULT_COLOR
-        elif self.connection.status == Connection.CONNECTED:
-            self.color = self.ACTIVE_COLOR
-        elif self.connection.status == Connection.NOT_CONNECTED:
-            self.color = self.DEFAULT_COLOR
-        else:
-            self.color = self.DEFAULT_COLOR
+        self.SetSizerAndFit(self.sizer_v)
 
-        # For testing:
-        if self.time > self.connected:
-            self.connection.status = Connection.NOT_CONNECTED
-        elif self.time > self.pending:
-            self.connection.status = Connection.CONNECTED
-        else:
-            self.connection.status = Connection.PENDING
-        self.time += 1
+    def get_sizer(self):
+        return self.sizer_v
+
+    def on_enter_remove(self, event):
+        msg = "Remove connection from list"
+        Publisher().sendMessage(("change_statusbar"), msg)
+
+    def on_leave_remove(self, event):
+        Publisher().sendMessage(("change_statusbar"), "")
+
+    def on_remove(self, event):
+        Publisher().sendMessage(("change_statusbar"), "")
+        Publisher().sendMessage(("remove_connection"), self)
+
+    def on_accept(self, event):
+        pass
+
+    def on_reject(self, event):
+        pass
+
+##class Row:
+##    DEFAULT_COLOR = (255, 255, 255)
+##    REQUEST_COLOR = (255, 255, 100)
+##    ACTIVE_COLOR = (100, 255, 100)
+##    def __init__(self, button, label, connection, line):
+##        self.sizer = wx.BoxSizer(wx.HORIZONTAL)
+##        self.sizer.Add(button, proportion=0, flag=wx.ALL, border=5)
+##        self.sizer.Add(label,
+##                       proportion=0,
+##                       flag=wx.ALIGN_CENTER_VERTICAL | wx.ALL,
+##                       border=5)
+##        
+##        self.button = button
+##        self.label = label
+##        self.connection = connection
+##        self.line = line
+##        self.color = self.DEFAULT_COLOR
+##        ### For testing:
+##        self.time = 0
+##        self.pending = 20
+##        self.connected = 50
+##        ###
+##        self.color = self.update_color()
+##
+##    def update_color(self):
+##        if (self.connection.status == Connection.PENDING or
+##            self.connection.status == Connection.REQUEST):
+##            if self.color == self.DEFAULT_COLOR:
+##                self.color = self.REQUEST_COLOR
+##            else:
+##                self.color = self.DEFAULT_COLOR
+##        elif self.connection.status == Connection.CONNECTED:
+##            self.color = self.ACTIVE_COLOR
+##        elif self.connection.status == Connection.NOT_CONNECTED:
+##            self.color = self.DEFAULT_COLOR
+##        else:
+##            self.color = self.DEFAULT_COLOR
+##
+##        # For testing:
+##        if self.time > self.connected:
+##            self.connection.status = Connection.NOT_CONNECTED
+##        elif self.time > self.pending:
+##            self.connection.status = Connection.CONNECTED
+##        else:
+##            self.connection.status = Connection.PENDING
+##        self.time += 1
 
 class ConnectionsPanel(wx.Panel):
     """This Panel is for managing and displaying connections"""
@@ -143,7 +210,7 @@ class ConnectionsPanel(wx.Panel):
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(new_btn,
                        proportion=0,
-                       flag=wx.EXPAND | wx.ALL,
+                       flag=wx.CENTER | wx.ALL,
                        border=5)
         self.sizer.Add(self.scroll_window,
                        proportion=0,
@@ -152,23 +219,25 @@ class ConnectionsPanel(wx.Panel):
 
         self.SetSizerAndFit(self.sizer)
 
-        self.btn_to_row = {}
+##        self.btn_to_row = {}
 
-        self.timer = wx.Timer(self, wx.ID_ANY)
-        self.Bind(wx.EVT_TIMER, self.on_timer, self.timer)
-        self.timer.Start(500)
+##        self.timer = wx.Timer(self, wx.ID_ANY)
+##        self.Bind(wx.EVT_TIMER, self.on_timer, self.timer)
+##        self.timer.Start(500)
+
+        Publisher().subscribe(self.remove_connection, "remove_connection")
 
     def config_size(self):
         self.scroll_window.SetSizer(self.scroll_sizer)
         self.scroll_window.SetAutoLayout(1)
         self.scroll_window.SetupScrolling()
 
-    def on_timer(self, event):
-        for row in self.btn_to_row.values():
-            row.update_color()
-            row.label.SetBackgroundColour(row.color)
-        self._rearange()
-        self.Refresh()
+##    def on_timer(self, event):
+##        for row in self.btn_to_row.values():
+##            row.update_color()
+##            row.label.SetBackgroundColour(row.color)
+##        self._rearange()
+##        self.Refresh()
 
     def on_new(self, event):
         new_box = NewConnectionDialog(self)
@@ -178,61 +247,73 @@ class ConnectionsPanel(wx.Panel):
             self.session.new_connection(alias, addr)
             conn = self.session.get_connection(addr)
             
-            name = addr
-            if alias: name = alias
+##            name = addr
+##            if alias: name = alias
             
-            rmv_btn = wx.Button(self.scroll_window, wx.ID_ANY, size=(20,20),
-                                label="X")
-            rmv_btn.Bind(wx.EVT_ENTER_WINDOW, self.on_enter_remove)
-            rmv_btn.Bind(wx.EVT_LEAVE_WINDOW, self.on_leave_remove)
-            rmv_btn.Bind(wx.EVT_BUTTON, self.on_remove)
+##            rmv_btn = wx.Button(self.scroll_window, wx.ID_ANY, size=(20,20),
+##                                label="X")
+##            rmv_btn.Bind(wx.EVT_ENTER_WINDOW, self.on_enter_remove)
+##            rmv_btn.Bind(wx.EVT_LEAVE_WINDOW, self.on_leave_remove)
+##            rmv_btn.Bind(wx.EVT_BUTTON, self.on_remove)
 
-            label = wx.StaticText(self.scroll_window, label=name)
-            line = wx.StaticLine(self.scroll_window)
+##            label = wx.StaticText(self.scroll_window, label=name)
+##            line = wx.StaticLine(self.scroll_window)
 
             
-            row = Row(rmv_btn, label, conn, line)
-            self.btn_to_row[rmv_btn] = row
-            
-            self._add_row(row)
+##            row = Row(rmv_btn, label, conn, line)
+##            self.btn_to_row[rmv_btn] = row
+##            
+##            self._add_row(row)
+
+            row = ConnectionWindow(self.scroll_window, conn)
+            self.scroll_sizer.Add(row)
 
             self.config_size()
             
         new_box.Destroy()
 
-    def on_enter_remove(self, event):
-        msg = "Remove connection from list"
-        Publisher().sendMessage(('change_statusbar'), msg)
+##    def on_enter_remove(self, event):
+##        msg = "Remove connection from list"
+##        Publisher().sendMessage(('change_statusbar'), msg)
+##
+##    def on_leave_remove(self, event):
+##        Publisher().sendMessage(('change_statusbar'), "")
+##
+##    def on_remove(self, event):
+##        btn = event.GetEventObject()
+##        row = self.btn_to_row[btn]
+##        self.scroll_sizer.Remove(row.sizer)
+##        
+##        row.button.Destroy()
+##        row.label.Destroy()
+##        row.line.Destroy()
+##        del self.btn_to_row[btn]
+##
+##        self.config_size()
+##
+##        self.session.del_connection(row.connection.address)
 
-    def on_leave_remove(self, event):
-        Publisher().sendMessage(('change_statusbar'), "")
-
-    def on_remove(self, event):
-        btn = event.GetEventObject()
-        row = self.btn_to_row[btn]
-        self.scroll_sizer.Remove(row.sizer)
+    def remove_connection(self, msg):
+        conn_window = msg.data
+        self.scroll_sizer.Remove(conn_window.get_sizer())
+        addr = conn_window.connection.address
+        conn_window.Destroy()
         
-        row.button.Destroy()
-        row.label.Destroy()
-        row.line.Destroy()
-        del self.btn_to_row[btn]
-
         self.config_size()
-
-        self.session.del_connection(row.connection.address)
-
-    def _rearange(self):
-        self._clear_row_display()
-        for row in sorted(self.btn_to_row.values(),
-                          key=lambda r: r.connection.status, reverse=True):
-            self._add_row(row)
-        self.config_size()
-
-    def _add_row(self, row):
-        self.scroll_sizer.Add(row.sizer)
-        self.scroll_sizer.Add(row.line, 0, wx.EXPAND)
-
-    def _clear_row_display(self):
-        for row in self.btn_to_row.values():
-            self.scroll_sizer.Detach(row.sizer)
-            self.scroll_sizer.Remove(row.line)
+        self.session.del_connection(addr)
+##
+##    def _rearange(self):
+##        self._clear_row_display()
+##        for row in sorted(self.btn_to_row.values(),
+##                          key=lambda r: r.connection.status, reverse=True):
+##            self._add_row(row)
+##        self.config_size()
+##
+##    def _add_row(self, row):
+##        self.scroll_sizer.Add(row.sizer)
+##        self.scroll_sizer.Add(row.line, 0, wx.EXPAND)
+##
+##    def _clear_row_display(self):
+##        for row in self.btn_to_row.values():
+##            self.scroll_sizer.Detach(row.sizer)
+##            self.scroll_sizer.Remove(row.line)

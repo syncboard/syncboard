@@ -38,7 +38,7 @@ class ConnectionManager:
             self.connections.remove(c)
 
 class Connection:
-    NOT_CONNECTED, CONNECTED, PENDING = range(3)
+    NOT_CONNECTED, CONNECTED, PENDING, REQUEST = range(4)
     def __init__(self, alias, address, status):
         self.alias = alias
         self.address = address
