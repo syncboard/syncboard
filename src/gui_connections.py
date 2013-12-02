@@ -26,7 +26,7 @@ import wx.lib.scrolledpanel as scrolled
 from wx.lib.pubsub import Publisher
 from connections import MAX_ALIAS_LENGTH, Connection
 
-CON_PANEL_WIDTH = 285
+CON_PANEL_WIDTH = 305
 CON_PANEL_HEIGHT_OFFSET = 115 # subtracted from its containers height
 
 class NewConnectionDialog(wx.Dialog):
@@ -138,10 +138,10 @@ class ConnectionWindow(wx.Panel):
         self.color_timer.Start(400)
 
 ### For testing:
-        if self.connection.status == Connection.REQUEST:
-            self.time = -1
-        else:
-            self.time = 0
+##        if self.connection.status == Connection.REQUEST:
+##            self.time = -1
+##        else:
+##            self.time = 0
 ###
         
     def get_sizer(self):
@@ -240,30 +240,30 @@ class ConnectionWindow(wx.Panel):
             self.label.SetBackgroundColour(self.DEFAULT_COLOR)
 
 ### For testing:
-        if self.time > 100:
-            self.connection.status = Connection.NOT_CONNECTED
-        elif self.time > 90:
-            self.connection.status = Connection.PENDING
-        elif self.time > 80:
-            self.connection.status = Connection.CONNECTED
-        elif self.time > 70:
-            self.connection.status = Connection.REQUEST
-        elif self.time > 60:
-            self.connection.status = Connection.NOT_CONNECTED
-        elif self.time > 50:
-            self.connection.status = Connection.REQUEST
-        elif self.time > 40:
-            self.connection.status = Connection.NOT_CONNECTED
-        elif self.time > 30:
-            self.connection.status = Connection.CONNECTED
-        elif self.time > 20:
-            self.connection.status = Connection.NOT_CONNECTED
-        elif self.time > 10:
-            self.connection.status = Connection.CONNECTED
-        elif self.time > 0:
-            self.connection.status = Connection.PENDING
-        if self.time >= 0:
-            self.time += 1
+##        if self.time > 100:
+##            self.connection.status = Connection.NOT_CONNECTED
+##        elif self.time > 90:
+##            self.connection.status = Connection.PENDING
+##        elif self.time > 80:
+##            self.connection.status = Connection.CONNECTED
+##        elif self.time > 70:
+##            self.connection.status = Connection.REQUEST
+##        elif self.time > 60:
+##            self.connection.status = Connection.NOT_CONNECTED
+##        elif self.time > 50:
+##            self.connection.status = Connection.REQUEST
+##        elif self.time > 40:
+##            self.connection.status = Connection.NOT_CONNECTED
+##        elif self.time > 30:
+##            self.connection.status = Connection.CONNECTED
+##        elif self.time > 20:
+##            self.connection.status = Connection.NOT_CONNECTED
+##        elif self.time > 10:
+##            self.connection.status = Connection.CONNECTED
+##        elif self.time > 0:
+##            self.connection.status = Connection.PENDING
+##        if self.time >= 0:
+##            self.time += 1
 ###
         self.Refresh()
 
@@ -306,20 +306,25 @@ class ConnectionsPanel(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.on_sync, self.sync_timer)
         self.sync_timer.Start(200)
 
+        self.sort_timer = wx.Timer(self, wx.ID_ANY)
+        self.Bind(wx.EVT_TIMER, self.on_sort, self.sort_timer)
+        self.sort_timer.Start(500)
+
+        self.rows = set()
         self.known_connections = set()
 
 ### For testing
-        self.new_timer = wx.Timer(self, wx.ID_ANY)
-        self.Bind(wx.EVT_TIMER, self.on_new_timer, self.new_timer)
-        self.new_timer.Start(1000)
-
-    def on_new_timer(self, event):
-        from random import randint
-        if randint(1, 5) == 1:
-            addr = str(randint(5000, 1000000))
-            self.session.new_connection("", addr)
-            c = self.session.get_connection(addr)
-            c.status = Connection.REQUEST
+##        self.new_timer = wx.Timer(self, wx.ID_ANY)
+##        self.Bind(wx.EVT_TIMER, self.on_new_timer, self.new_timer)
+##        self.new_timer.Start(1000)
+##
+##    def on_new_timer(self, event):
+##        from random import randint
+##        if randint(1, 5) == 1:
+##            addr = str(randint(5000, 1000000))
+##            self.session.new_connection("", addr)
+##            c = self.session.get_connection(addr)
+##            c.status = Connection.REQUEST
 ###
 
     def on_sync(self, event):
@@ -347,15 +352,19 @@ class ConnectionsPanel(wx.Panel):
     def add_connection(self, conn):
         self.known_connections.add(conn)
         row = ConnectionWindow(self.scroll_window, conn)
+        self.rows.add(row)
+        
         self.scroll_sizer.Add(row)
         self.config_size()
 
     def remove_connection(self, msg):
-        conn_window = msg.data
-        self.scroll_sizer.Remove(conn_window.get_sizer())
-        conn = conn_window.connection
+        row = msg.data
+        self.scroll_sizer.Remove(row.get_sizer())
+        conn = row.connection
         addr = conn.address
-        conn_window.Destroy()
+        
+        self.rows.remove(row)
+        row.Destroy()
 
         self.known_connections.remove(conn)
         
@@ -365,19 +374,14 @@ class ConnectionsPanel(wx.Panel):
     def accept_connection(self, msg):
         conn = msg.data.connection
         self.session.accept_connection(conn.address)
-##
-##    def _rearange(self):
-##        self._clear_row_display()
-##        for row in sorted(self.btn_to_row.values(),
-##                          key=lambda r: r.connection.status, reverse=True):
-##            self._add_row(row)
-##        self.config_size()
-##
-##    def _add_row(self, row):
-##        self.scroll_sizer.Add(row.sizer)
-##        self.scroll_sizer.Add(row.line, 0, wx.EXPAND)
-##
-##    def _clear_row_display(self):
-##        for row in self.btn_to_row.values():
-##            self.scroll_sizer.Detach(row.sizer)
-##            self.scroll_sizer.Remove(row.line)
+
+    def on_sort(self, event):
+        for row in self.rows:
+            self.scroll_sizer.Detach(row)            
+        
+        for row in sorted(self.rows,
+                          key=lambda r: r.connection.status, reverse=True):
+            self.scroll_sizer.Add(row)
+             
+        self.config_size()
+
