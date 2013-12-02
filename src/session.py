@@ -23,7 +23,7 @@
     functionality.
 """
 
-from connections import ConnectionManager
+from connections import ConnectionManager, Connection
 
 class Session:
     def __init__(self):
@@ -31,11 +31,22 @@ class Session:
         #       to preserve the list between sessions
         self.con_mgr = ConnectionManager()
 
+    def connections(self):
+        return self.con_mgr.connections
+
     def get_connection(self, address):
         return self.con_mgr.get_connection(address)
 
     def new_connection(self, alias, address):
         self.con_mgr.new_connection(alias, address)
+
+    def accept_connection(self, address):
+        conn = self.get_connection(address)
+        if conn:
+            print "Connection from %s accepted" % address
+            conn.status = Connection.CONNECTED
+        else:
+            print "Error: no connection from %s exists"
 
     def del_connection(self, address):
         self.con_mgr.del_connection(address)

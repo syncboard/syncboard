@@ -75,6 +75,9 @@ class NewConnectionDialog(wx.Dialog):
 
 class ConnectionWindow(wx.Panel):
     """This Panel is individual connections"""
+    DEFAULT_COLOR = (255, 255, 255)
+    REQUEST_COLOR = (255, 255, 100)
+    CONNECT_COLOR = (100, 255, 100)
     def __init__(self, parent, connection, *args, **kwargs):
         wx.Panel.__init__(self, parent, *args, **kwargs)
         self.parent = parent
@@ -98,20 +101,26 @@ class ConnectionWindow(wx.Panel):
                        flag=wx.ALIGN_CENTER_VERTICAL | wx.ALL,
                        border=5)
 
-        size = (50, 20)
-        if self.connection.status == Connection.REQUEST:
-            self.accept_button = wx.Button(self, wx.ID_ANY,
-                                           size=size, label="Accept")
-            self.accept_button.Bind(wx.EVT_BUTTON, self.on_accept)
-            self.sizer.Add(self.accept_button, proportion=0, flag=wx.ALL, border=5)
-            
-            self.reject_button = wx.Button(self, wx.ID_ANY,
-                                           size=size, label="Reject")
-            self.reject_button.Bind(wx.EVT_BUTTON, self.on_reject)
-            self.sizer.Add(self.reject_button, proportion=0, flag=wx.ALL, border=5)
-        else:
-            self.sizer.AddSpacer((120, 20))
+        self.state = None
+        self.buttons = {}
+        def add_button(label, size, callback):
+            button = wx.Button(self, wx.ID_ANY,
+                               size=size, label=label)
+            button.Bind(wx.EVT_BUTTON, callback)
+            self.sizer.Add(button, proportion=0, flag=wx.ALL, border=5)
+            button.Hide()
+            self.buttons[label] = button
 
+        size = (50, 20)
+        add_button("Accept", size, self.on_accept)
+        add_button("Reject", size, self.on_remove)
+
+        size = (100, 20)
+        add_button("Connect", size, self.on_connect)
+        self.spacer = True # Used for bug fix later
+
+        size = (100, 20)
+        add_button("Disconnect", size, self.on_disconnect)        
 
         self.sizer_v.Add(self.sizer)
         
@@ -120,6 +129,21 @@ class ConnectionWindow(wx.Panel):
 
         self.SetSizerAndFit(self.sizer_v)
 
+        self.state_timer = wx.Timer(self, wx.ID_ANY)
+        self.Bind(wx.EVT_TIMER, self.on_update_state, self.state_timer)
+        self.state_timer.Start(100)
+
+        self.color_timer = wx.Timer(self, wx.ID_ANY)
+        self.Bind(wx.EVT_TIMER, self.on_update_color, self.color_timer)
+        self.color_timer.Start(400)
+
+### For testing:
+        if self.connection.status == Connection.REQUEST:
+            self.time = -1
+        else:
+            self.time = 0
+###
+        
     def get_sizer(self):
         return self.sizer_v
 
@@ -135,57 +159,113 @@ class ConnectionWindow(wx.Panel):
         Publisher().sendMessage(("remove_connection"), self)
 
     def on_accept(self, event):
-        pass
+        Publisher().sendMessage(("accept_connection"), self)
 
-    def on_reject(self, event):
-        pass
+    def on_connect(self, event):
+##        Publisher().sendMessage(("reconnect"), self)
+        print "reconnect"
 
-##class Row:
-##    DEFAULT_COLOR = (255, 255, 255)
-##    REQUEST_COLOR = (255, 255, 100)
-##    ACTIVE_COLOR = (100, 255, 100)
-##    def __init__(self, button, label, connection, line):
-##        self.sizer = wx.BoxSizer(wx.HORIZONTAL)
-##        self.sizer.Add(button, proportion=0, flag=wx.ALL, border=5)
-##        self.sizer.Add(label,
-##                       proportion=0,
-##                       flag=wx.ALIGN_CENTER_VERTICAL | wx.ALL,
-##                       border=5)
-##        
-##        self.button = button
-##        self.label = label
-##        self.connection = connection
-##        self.line = line
-##        self.color = self.DEFAULT_COLOR
-##        ### For testing:
-##        self.time = 0
-##        self.pending = 20
-##        self.connected = 50
-##        ###
-##        self.color = self.update_color()
-##
-##    def update_color(self):
-##        if (self.connection.status == Connection.PENDING or
-##            self.connection.status == Connection.REQUEST):
-##            if self.color == self.DEFAULT_COLOR:
-##                self.color = self.REQUEST_COLOR
-##            else:
-##                self.color = self.DEFAULT_COLOR
-##        elif self.connection.status == Connection.CONNECTED:
-##            self.color = self.ACTIVE_COLOR
-##        elif self.connection.status == Connection.NOT_CONNECTED:
-##            self.color = self.DEFAULT_COLOR
-##        else:
-##            self.color = self.DEFAULT_COLOR
-##
-##        # For testing:
-##        if self.time > self.connected:
-##            self.connection.status = Connection.NOT_CONNECTED
-##        elif self.time > self.pending:
-##            self.connection.status = Connection.CONNECTED
-##        else:
-##            self.connection.status = Connection.PENDING
-##        self.time += 1
+    def on_disconnect(self, event):
+##        Publisher().sendMessage(("disconnect"), self)
+        print "disconect"
+
+    def on_update_state(self, event):
+        def hide_buttons():
+            for b in self.buttons.values():
+                b.Hide()
+
+        def show_accept_reject():
+            hide_buttons()
+            self.buttons["Accept"].Show()
+            self.buttons["Reject"].Show()
+
+        def show_connect():
+            hide_buttons()
+            self.buttons["Connect"].Show()
+
+        def show_disconnect():
+            hide_buttons()
+            self.buttons["Disconnect"].Show()
+            
+        if self.state == None:
+            if self.connection.status == Connection.REQUEST:
+                show_accept_reject()
+            elif self.connection.status == Connection.NOT_CONNECTED:
+                show_connect()
+            elif self.connection.status == Connection.CONNECTED:
+                show_disconnect()
+        elif self.state == Connection.NOT_CONNECTED:
+            if self.connection.status == Connection.REQUEST:
+                show_accept_reject()
+            elif self.connection.status == Connection.CONNECTED:
+                show_disconnect()
+            elif self.connection.status == Connection.PENDING:
+                hide_buttons()
+        elif self.state == Connection.CONNECTED:
+            if self.connection.status == Connection.NOT_CONNECTED:
+                show_connect()
+### Fix for a really wierd bug: Connect button not positioned properly
+                if self.spacer:
+                    self.sizer.AddSpacer((10,20))
+                    self.spacer = False
+###
+        elif self.state == Connection.PENDING:
+            if self.connection.status == Connection.CONNECTED:
+                show_disconnect()
+            elif self.connection.status == Connection.NOT_CONNECTED:
+                show_connect()
+        elif self.state == Connection.REQUEST:
+            if self.connection.status == Connection.CONNECTED:
+                show_disconnect()
+            elif self.connection.status == Connection.NOT_CONNECTED:
+                show_connect()
+        else:
+            pass
+        
+        self.state = self.connection.status
+        self.SetSizerAndFit(self.sizer_v)
+
+    def on_update_color(self, event):
+        if (self.connection.status == Connection.PENDING or
+            self.connection.status == Connection.REQUEST):
+            if self.label.GetBackgroundColour() == self.DEFAULT_COLOR:
+                self.label.SetBackgroundColour(self.REQUEST_COLOR)
+            else:
+                self.label.SetBackgroundColour(self.DEFAULT_COLOR)
+        elif self.connection.status == Connection.CONNECTED:
+            self.label.SetBackgroundColour(self.CONNECT_COLOR)
+        elif self.connection.status == Connection.NOT_CONNECTED:
+            self.label.SetBackgroundColour(self.DEFAULT_COLOR)
+        else:
+            self.label.SetBackgroundColour(self.DEFAULT_COLOR)
+
+### For testing:
+        if self.time > 100:
+            self.connection.status = Connection.NOT_CONNECTED
+        elif self.time > 90:
+            self.connection.status = Connection.PENDING
+        elif self.time > 80:
+            self.connection.status = Connection.CONNECTED
+        elif self.time > 70:
+            self.connection.status = Connection.REQUEST
+        elif self.time > 60:
+            self.connection.status = Connection.NOT_CONNECTED
+        elif self.time > 50:
+            self.connection.status = Connection.REQUEST
+        elif self.time > 40:
+            self.connection.status = Connection.NOT_CONNECTED
+        elif self.time > 30:
+            self.connection.status = Connection.CONNECTED
+        elif self.time > 20:
+            self.connection.status = Connection.NOT_CONNECTED
+        elif self.time > 10:
+            self.connection.status = Connection.CONNECTED
+        elif self.time > 0:
+            self.connection.status = Connection.PENDING
+        if self.time >= 0:
+            self.time += 1
+###
+        self.Refresh()
 
 class ConnectionsPanel(wx.Panel):
     """This Panel is for managing and displaying connections"""
@@ -219,25 +299,38 @@ class ConnectionsPanel(wx.Panel):
 
         self.SetSizerAndFit(self.sizer)
 
-##        self.btn_to_row = {}
-
-##        self.timer = wx.Timer(self, wx.ID_ANY)
-##        self.Bind(wx.EVT_TIMER, self.on_timer, self.timer)
-##        self.timer.Start(500)
-
+        Publisher().subscribe(self.accept_connection, "accept_connection")
         Publisher().subscribe(self.remove_connection, "remove_connection")
+
+        self.sync_timer = wx.Timer(self, wx.ID_ANY)
+        self.Bind(wx.EVT_TIMER, self.on_sync, self.sync_timer)
+        self.sync_timer.Start(200)
+
+        self.known_connections = set()
+
+### For testing
+        self.new_timer = wx.Timer(self, wx.ID_ANY)
+        self.Bind(wx.EVT_TIMER, self.on_new_timer, self.new_timer)
+        self.new_timer.Start(1000)
+
+    def on_new_timer(self, event):
+        from random import randint
+        if randint(1, 5) == 1:
+            addr = str(randint(5000, 1000000))
+            self.session.new_connection("", addr)
+            c = self.session.get_connection(addr)
+            c.status = Connection.REQUEST
+###
+
+    def on_sync(self, event):
+        for connection in self.session.connections():
+            if connection not in self.known_connections:
+                self.add_connection(connection)
 
     def config_size(self):
         self.scroll_window.SetSizer(self.scroll_sizer)
         self.scroll_window.SetAutoLayout(1)
         self.scroll_window.SetupScrolling()
-
-##    def on_timer(self, event):
-##        for row in self.btn_to_row.values():
-##            row.update_color()
-##            row.label.SetBackgroundColour(row.color)
-##        self._rearange()
-##        self.Refresh()
 
     def on_new(self, event):
         new_box = NewConnectionDialog(self)
@@ -246,61 +339,32 @@ class ConnectionsPanel(wx.Panel):
             addr = new_box.address.GetValue()
             self.session.new_connection(alias, addr)
             conn = self.session.get_connection(addr)
-            
-##            name = addr
-##            if alias: name = alias
-            
-##            rmv_btn = wx.Button(self.scroll_window, wx.ID_ANY, size=(20,20),
-##                                label="X")
-##            rmv_btn.Bind(wx.EVT_ENTER_WINDOW, self.on_enter_remove)
-##            rmv_btn.Bind(wx.EVT_LEAVE_WINDOW, self.on_leave_remove)
-##            rmv_btn.Bind(wx.EVT_BUTTON, self.on_remove)
 
-##            label = wx.StaticText(self.scroll_window, label=name)
-##            line = wx.StaticLine(self.scroll_window)
-
-            
-##            row = Row(rmv_btn, label, conn, line)
-##            self.btn_to_row[rmv_btn] = row
-##            
-##            self._add_row(row)
-
-            row = ConnectionWindow(self.scroll_window, conn)
-            self.scroll_sizer.Add(row)
-
-            self.config_size()
+            self.add_connection(conn)
             
         new_box.Destroy()
 
-##    def on_enter_remove(self, event):
-##        msg = "Remove connection from list"
-##        Publisher().sendMessage(('change_statusbar'), msg)
-##
-##    def on_leave_remove(self, event):
-##        Publisher().sendMessage(('change_statusbar'), "")
-##
-##    def on_remove(self, event):
-##        btn = event.GetEventObject()
-##        row = self.btn_to_row[btn]
-##        self.scroll_sizer.Remove(row.sizer)
-##        
-##        row.button.Destroy()
-##        row.label.Destroy()
-##        row.line.Destroy()
-##        del self.btn_to_row[btn]
-##
-##        self.config_size()
-##
-##        self.session.del_connection(row.connection.address)
+    def add_connection(self, conn):
+        self.known_connections.add(conn)
+        row = ConnectionWindow(self.scroll_window, conn)
+        self.scroll_sizer.Add(row)
+        self.config_size()
 
     def remove_connection(self, msg):
         conn_window = msg.data
         self.scroll_sizer.Remove(conn_window.get_sizer())
-        addr = conn_window.connection.address
+        conn = conn_window.connection
+        addr = conn.address
         conn_window.Destroy()
+
+        self.known_connections.remove(conn)
         
         self.config_size()
         self.session.del_connection(addr)
+
+    def accept_connection(self, msg):
+        conn = msg.data.connection
+        self.session.accept_connection(conn.address)
 ##
 ##    def _rearange(self):
 ##        self._clear_row_display()
