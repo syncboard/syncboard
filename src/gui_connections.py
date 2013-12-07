@@ -68,7 +68,7 @@ class NewConnectionDialog(wx.Dialog):
 
 class ConnectionWindow(wx.Panel):
     """This Panel is individual connections"""
-    DEFAULT_COLOR = (255, 255, 255)
+    DEFAULT_COLOR = (240, 240, 240)
     REQUEST_COLOR = (255, 255, 100)
     CONNECT_COLOR = (100, 255, 100)
     def __init__(self, parent, connection, *args, **kwargs):
@@ -76,7 +76,6 @@ class ConnectionWindow(wx.Panel):
         self.parent = parent
         self.connection = connection
         
-        self.sizer_v = wx.BoxSizer(wx.VERTICAL)
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.rmv_btn = wx.Button(self, wx.ID_ANY, size=(20,20), label="X")
@@ -88,11 +87,10 @@ class ConnectionWindow(wx.Panel):
         size = (MAX_ALIAS_LENGTH * 8, 13)
         name = self.connection.address
         if self.connection.alias: name = self.connection.alias
-        self.label = wx.StaticText(self, size=size, label=name)
-        self.sizer.Add(self.label,
-                       proportion=0,
-                       flag=wx.ALIGN_CENTER_VERTICAL | wx.ALL,
-                       border=5)
+        self.label = wx.StaticText(self, label=name)
+        flags = wx.SizerFlags().Proportion(1).Expand().Border(wx.ALL, 5)
+        flags.Align(wx.ALIGN_CENTER_VERTICAL)
+        self.sizer.AddF(self.label, flags)
 
         self.state = None
         self.buttons = {}
@@ -100,7 +98,8 @@ class ConnectionWindow(wx.Panel):
             button = wx.Button(self, wx.ID_ANY,
                                size=size, label=label)
             button.Bind(wx.EVT_BUTTON, callback)
-            self.sizer.Add(button, proportion=0, flag=wx.ALL, border=5)
+            flags = wx.SizerFlags().Proportion(0).Border(wx.ALL, 5)
+            self.sizer.AddF(button, flags)
             button.Hide()
             self.buttons[label] = button
 
@@ -110,17 +109,18 @@ class ConnectionWindow(wx.Panel):
 
         size = (100, 20)
         add_button("Connect", size, self.on_connect)
-        self.spacer = True # Used for bug fix later
 
         size = (100, 20)
-        add_button("Disconnect", size, self.on_disconnect)        
+        add_button("Disconnect", size, self.on_disconnect)
 
-        self.sizer_v.Add(self.sizer)
-        
-        self.line = wx.StaticLine(self)
-        self.sizer_v.Add(self.line, 0, wx.EXPAND)
+        waiting = wx.StaticText(self, label="Request pending...")
+        flags = wx.SizerFlags().Proportion(0).Border(wx.ALL, 5)
+        flags.Align(wx.ALIGN_CENTER_VERTICAL)
+        self.sizer.AddF(waiting, flags)
+        waiting.Hide()
+        self.buttons["Waiting"] = waiting
 
-        self.SetSizerAndFit(self.sizer_v)
+        self.SetSizerAndFit(self.sizer)
 
         self.state_timer = wx.Timer(self, wx.ID_ANY)
         self.Bind(wx.EVT_TIMER, self.on_update_state, self.state_timer)
@@ -130,6 +130,8 @@ class ConnectionWindow(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.on_update_color, self.color_timer)
         self.color_timer.Start(400)
 
+        self.initSize = self.GetMinSize()
+
 ### For testing:
 ##        if self.connection.status == Connection.REQUEST:
 ##            self.time = -1
@@ -138,7 +140,7 @@ class ConnectionWindow(wx.Panel):
 ###
         
     def get_sizer(self):
-        return self.sizer_v
+        return self.sizer
 
     def on_enter_remove(self, event):
         msg = "Remove connection from list"
@@ -155,12 +157,12 @@ class ConnectionWindow(wx.Panel):
         Publisher().sendMessage(("accept_connection"), self)
 
     def on_connect(self, event):
-##        Publisher().sendMessage(("reconnect"), self)
-        print "reconnect"
+        Publisher().sendMessage(("reconnect"), self)
+        print "TODO: implement reconnect"
 
     def on_disconnect(self, event):
-##        Publisher().sendMessage(("disconnect"), self)
-        print "disconect"
+        Publisher().sendMessage(("disconnect"), self)
+        print "TODO: implement disconect"
 
     def on_update_state(self, event):
         def hide_buttons():
@@ -179,9 +181,16 @@ class ConnectionWindow(wx.Panel):
         def show_disconnect():
             hide_buttons()
             self.buttons["Disconnect"].Show()
+
+        def show_waiting():
+            print 'show'
+            hide_buttons()
+            self.buttons["Waiting"].Show()
             
         if self.state == None:
-            if self.connection.status == Connection.REQUEST:
+            if self.connection.status == Connection.PENDING:
+                show_waiting()
+            elif self.connection.status == Connection.REQUEST:
                 show_accept_reject()
             elif self.connection.status == Connection.NOT_CONNECTED:
                 show_connect()
@@ -193,15 +202,10 @@ class ConnectionWindow(wx.Panel):
             elif self.connection.status == Connection.CONNECTED:
                 show_disconnect()
             elif self.connection.status == Connection.PENDING:
-                hide_buttons()
+                show_waiting()
         elif self.state == Connection.CONNECTED:
             if self.connection.status == Connection.NOT_CONNECTED:
                 show_connect()
-### Fix for a really wierd bug: Connect button not positioned properly
-                if self.spacer:
-                    self.sizer.AddSpacer((10,20))
-                    self.spacer = False
-###
         elif self.state == Connection.PENDING:
             if self.connection.status == Connection.CONNECTED:
                 show_disconnect()
@@ -216,21 +220,22 @@ class ConnectionWindow(wx.Panel):
             pass
         
         self.state = self.connection.status
-        self.SetSizerAndFit(self.sizer_v)
+        self.sizer.Layout()
 
     def on_update_color(self, event):
+        change = self
         if (self.connection.status == Connection.PENDING or
             self.connection.status == Connection.REQUEST):
-            if self.label.GetBackgroundColour() == self.DEFAULT_COLOR:
-                self.label.SetBackgroundColour(self.REQUEST_COLOR)
+            if change.GetBackgroundColour() == self.DEFAULT_COLOR:
+                change.SetBackgroundColour(self.REQUEST_COLOR)
             else:
-                self.label.SetBackgroundColour(self.DEFAULT_COLOR)
+                change.SetBackgroundColour(self.DEFAULT_COLOR)
         elif self.connection.status == Connection.CONNECTED:
-            self.label.SetBackgroundColour(self.CONNECT_COLOR)
+            change.SetBackgroundColour(self.CONNECT_COLOR)
         elif self.connection.status == Connection.NOT_CONNECTED:
-            self.label.SetBackgroundColour(self.DEFAULT_COLOR)
+            change.SetBackgroundColour(self.DEFAULT_COLOR)
         else:
-            self.label.SetBackgroundColour(self.DEFAULT_COLOR)
+            change.SetBackgroundColour(self.DEFAULT_COLOR)
 
 ### For testing:
 ##        if self.time > 100:
@@ -267,28 +272,16 @@ class ConnectionsPanel(wx.Panel):
         self.parent = parent
         self.session = session
 
-##        new_btn = wx.Button(self, label="New Connection")
-##        new_btn.Bind(wx.EVT_BUTTON, self.on_new)
-
-##        height = parent.GetSize()[1] - CON_PANEL_HEIGHT_OFFSET
         self.scroll_window = scrolled.ScrolledPanel(self, wx.ID_ANY,
-##                                 size=(0, height),
                                  style = wx.SUNKEN_BORDER,
                                  name="connection list")
-##        self.scroll_window.SetBackgroundColour("WHITE")
         self.scroll_sizer = wx.BoxSizer(wx.VERTICAL)
         
         self.config_size()
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-##        self.sizer.Add(new_btn,
-##                       proportion=0,
-##                       flag=wx.CENTER | wx.ALL,
-##                       border=5)
-        self.sizer.Add(self.scroll_window,
-                       proportion=1,
-                       flag=wx.ALL | wx.EXPAND,
-                       border=5)
+        flags = wx.SizerFlags().Proportion(1).Expand().Border(wx.ALL, 5)
+        self.sizer.AddF(self.scroll_window, flags)
 
         self.SetSizerAndFit(self.sizer)
 
@@ -328,8 +321,7 @@ class ConnectionsPanel(wx.Panel):
 
     def config_size(self):
         self.scroll_window.SetSizer(self.scroll_sizer)
-        self.scroll_window.SetAutoLayout(1)
-        self.scroll_window.SetupScrolling()
+        self.scroll_window.SetupScrolling(scrollToTop=False)
 
     def new_connection(self, msg):
         new_box = NewConnectionDialog(self)
@@ -343,12 +335,16 @@ class ConnectionsPanel(wx.Panel):
             
         new_box.Destroy()
 
+    def _add_row_to_sizer(self, row):
+        flags = wx.SizerFlags().Expand()
+        self.scroll_sizer.AddF(row, flags)
+        
     def add_connection(self, conn):
         self.known_connections.add(conn)
-        row = ConnectionWindow(self.scroll_window, conn)
+        row = ConnectionWindow(self.scroll_window, conn, style=wx.RAISED_BORDER)
         self.rows.add(row)
-        
-        self.scroll_sizer.Add(row)
+
+        self._add_row_to_sizer(row)
         self.config_size()
 
     def remove_connection(self, msg):
@@ -375,7 +371,7 @@ class ConnectionsPanel(wx.Panel):
         
         for row in sorted(self.rows,
                           key=lambda r: r.connection.status, reverse=True):
-            self.scroll_sizer.Add(row)
+            self._add_row_to_sizer(row)
              
         self.config_size()
 

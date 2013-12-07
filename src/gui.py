@@ -28,7 +28,7 @@ from gui_info import AboutDialog
 from gui_connections import ConnectionsPanel
 from session import Session
 
-FRAME_SIZE = (500, 500)
+FRAME_SIZE = (500, 510)
 
 # TODO: move options and display to their own files
 
