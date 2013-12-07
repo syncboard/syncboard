@@ -71,8 +71,9 @@ class MainFrame(wx.Frame):
 
         auto_sync_cb = wx.CheckBox(self, id=wx.ID_ANY,
                                        label="Automatically Sync")
-
         self.Bind(wx.EVT_CHECKBOX, self.on_toggle_auto, auto_sync_cb)
+        auto_sync_cb.Bind(wx.EVT_ENTER_WINDOW, self.on_enter_auto)
+        auto_sync_cb.Bind(wx.EVT_LEAVE_WINDOW, self.on_leave_auto)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         top_row_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -105,6 +106,15 @@ class MainFrame(wx.Frame):
 
     def on_toggle_auto(self, event):
         Publisher().sendMessage(("auto_toggle"), event.IsChecked())
+
+    def on_enter_auto(self, event):
+        Publisher().sendMessage(("change_statusbar"),
+            "Automatically copy/paste new items to/from your clipboard")
+        event.Skip()
+
+    def on_leave_auto(self, event):
+        Publisher().sendMessage(("change_statusbar"), "")
+        event.Skip()
 
     def on_about(self, event):
         aboutbox = AboutDialog(self)

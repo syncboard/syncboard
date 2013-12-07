@@ -145,9 +145,11 @@ class ConnectionWindow(wx.Panel):
     def on_enter_remove(self, event):
         msg = "Remove connection from list"
         Publisher().sendMessage(("change_statusbar"), msg)
+        event.Skip()
 
     def on_leave_remove(self, event):
         Publisher().sendMessage(("change_statusbar"), "")
+        event.Skip()
 
     def on_remove(self, event):
         Publisher().sendMessage(("change_statusbar"), "")
