@@ -24,7 +24,7 @@
 import wx
 import wx.lib.scrolledpanel as scrolled
 from wx.lib.pubsub import Publisher
-from connections import MAX_ALIAS_LENGTH, Connection
+from connections import MAX_ALIAS_LENGTH, MAX_ADDRESS_LENGTH, Connection
 
 CON_PANEL_WIDTH = 305
 CON_PANEL_HEIGHT_OFFSET = 115 # subtracted from its containers height
@@ -37,38 +37,31 @@ class NewConnectionDialog(wx.Dialog):
         self.alias = wx.TextCtrl(self)
         self.alias.SetMaxLength(MAX_ALIAS_LENGTH)
 
+        offset = 3
+        
+        width, height = self.alias.GetSizeTuple()
+        width = MAX_ALIAS_LENGTH * (self.alias.GetCharWidth() + offset)
+	self.alias.SetMinSize((width, height))
+
         self.address_label = wx.StaticText(self, wx.ID_ANY, "Address:")
         self.address = wx.TextCtrl(self)
-        self.address.SetMaxLength(15)
+        self.address.SetMaxLength(MAX_ADDRESS_LENGTH)
+        width = MAX_ADDRESS_LENGTH * (self.address.GetCharWidth() + offset)
+        self.address.SetMinSize((width, height))
         
         cancel_btn = wx.Button(self, wx.ID_CANCEL, "Cancel")
         ok_btn = wx.Button(self, wx.ID_OK, "OK")
 
-        sizer = wx.GridBagSizer(3, 2)
-        sizer.Add(self.alias_label,
-                  pos=(0,0),
-                  flag=wx.ALL,
-                  border=5)
-        sizer.Add(self.alias,
-                  pos=(0,1),
-                  flag=wx.ALL,
-                  border=5)
-        sizer.Add(self.address_label,
-                  pos=(1,0),
-                  flag=wx.ALL,
-                  border=5)
-        sizer.Add(self.address,
-                  pos=(1,1),
-                  flag=wx.ALL,
-                  border=5)
-        sizer.Add(cancel_btn,
-                  pos=(2,0),
-                  flag= wx.ALIGN_CENTER | wx.ALL,
-                  border=5)
-        sizer.Add(ok_btn,
-                  pos=(2,1),
-                  flag= wx.ALIGN_CENTER | wx.ALL,
-                  border=5)        
+        flags = wx.SizerFlags().Border(wx.ALL, 5)
+        
+        sizer = wx.GridSizer(3, 2)
+        
+        sizer.AddF(self.alias_label, flags=flags)
+        sizer.AddF(self.alias, flags=flags)
+        sizer.AddF(self.address_label, flags=flags)
+        sizer.AddF(self.address, flags=flags)
+        sizer.AddF(cancel_btn, flags=flags)
+        sizer.AddF(ok_btn, flags=flags)       
         
         self.SetSizerAndFit(sizer)
         self.Center(wx.BOTH)
@@ -274,31 +267,32 @@ class ConnectionsPanel(wx.Panel):
         self.parent = parent
         self.session = session
 
-        new_btn = wx.Button(self, label="New Connection")
-        new_btn.Bind(wx.EVT_BUTTON, self.on_new)
+##        new_btn = wx.Button(self, label="New Connection")
+##        new_btn.Bind(wx.EVT_BUTTON, self.on_new)
 
-        height = parent.GetSize()[1] - CON_PANEL_HEIGHT_OFFSET
+##        height = parent.GetSize()[1] - CON_PANEL_HEIGHT_OFFSET
         self.scroll_window = scrolled.ScrolledPanel(self, wx.ID_ANY,
-                                 size=(CON_PANEL_WIDTH, height),
+##                                 size=(0, height),
                                  style = wx.SUNKEN_BORDER,
                                  name="connection list")
-        self.scroll_window.SetBackgroundColour("WHITE")
+##        self.scroll_window.SetBackgroundColour("WHITE")
         self.scroll_sizer = wx.BoxSizer(wx.VERTICAL)
         
         self.config_size()
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(new_btn,
-                       proportion=0,
-                       flag=wx.CENTER | wx.ALL,
-                       border=5)
+##        self.sizer.Add(new_btn,
+##                       proportion=0,
+##                       flag=wx.CENTER | wx.ALL,
+##                       border=5)
         self.sizer.Add(self.scroll_window,
-                       proportion=0,
-                       flag=wx.FIXED_MINSIZE | wx.ALL,
+                       proportion=1,
+                       flag=wx.ALL | wx.EXPAND,
                        border=5)
 
         self.SetSizerAndFit(self.sizer)
 
+        Publisher().subscribe(self.new_connection, "new_connection")
         Publisher().subscribe(self.accept_connection, "accept_connection")
         Publisher().subscribe(self.remove_connection, "remove_connection")
 
@@ -337,7 +331,7 @@ class ConnectionsPanel(wx.Panel):
         self.scroll_window.SetAutoLayout(1)
         self.scroll_window.SetupScrolling()
 
-    def on_new(self, event):
+    def new_connection(self, msg):
         new_box = NewConnectionDialog(self)
         if new_box.ShowModal() == wx.ID_OK:
             alias = new_box.alias.GetValue()

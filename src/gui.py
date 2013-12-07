@@ -38,19 +38,20 @@ class OptionsPanel(wx.Panel):
         wx.Panel.__init__(self, parent, *args, **kwargs)
         self.parent = parent
 
-        self.hotkey_cb = wx.CheckBox(self, id=wx.ID_ANY,
-                                     label="Enable Shortcut Keys (Ctrl+Shift+C/V)")
-        self.hotkey_cb.SetValue(True)
-        self.auto_sync_cb = wx.CheckBox(self, id=wx.ID_ANY,
-                                       label="Automatically Sync")
+##        self.hotkey_cb = wx.CheckBox(self, id=wx.ID_ANY,
+##                                     label="Enable Shortcut Keys (Ctrl+Shift+C/V)")
+##        self.hotkey_cb.SetValue(True)
+##        self.auto_sync_cb = wx.CheckBox(self, id=wx.ID_ANY,
+##                                       label="Automatically Sync")
 
-        self.Bind(wx.EVT_CHECKBOX, self.on_check_box, self.hotkey_cb)
-        self.Bind(wx.EVT_CHECKBOX, self.on_check_box, self.auto_sync_cb)
+##        self.Bind(wx.EVT_CHECKBOX, self.on_check_box, self.hotkey_cb)
+##        self.Bind(wx.EVT_CHECKBOX, self.on_check_box, self.auto_sync_cb)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.hotkey_cb, proportion=0, flag=wx.ALL, border=10)
-        sizer.Add(self.auto_sync_cb, proportion=0, flag=wx.ALL, border=10)
-
+##        sizer.Add(self.hotkey_cb, proportion=0, flag=wx.ALL, border=10)
+##        sizer.Add(self.auto_sync_cb, proportion=0, flag=wx.ALL, border=10)
+        t = wx.StaticText(self, label="Status")
+        sizer.Add(t)
         self.SetSizerAndFit(sizer)
 
     def on_check_box(self, event):
@@ -61,7 +62,7 @@ class OptionsPanel(wx.Panel):
             print "auto: ", event.IsChecked()
 
         
-class DisplayPanel(wx.Panel):
+class ClipboardPanel(wx.Panel):
     """
     This Panel is where the user copies and pastes. (it will also be for
     displaying clipboard contents if we choose to do so)
@@ -72,7 +73,45 @@ class DisplayPanel(wx.Panel):
         
         sizer = wx.BoxSizer(wx.VERTICAL)
 
+        self.text = wx.TextCtrl(self, size=(150, 50),
+                                style=wx.TE_CENTER | wx.TE_MULTILINE | wx.TE_NO_VSCROLL,
+                                value="\nCopy/Paste Here")
+        sizer.Add(self.text)
+
         self.SetSizerAndFit(sizer)
+
+##        self.Bind(wx.EVT_IDLE, self.check_clipboard)
+        self.Bind(wx.EVT_TEXT_PASTE, self.new_paste)
+        self.Bind(wx.EVT_TEXT, self.reset)
+
+        self.prev_content = ""
+        self.dont_reset = False
+
+    def new_paste(self, event):
+        print "new paste"
+        self.reset(None)
+
+    def reset(self, event):
+        if self.dont_reset:
+            self.dont_reset = False
+        else:
+            self.dont_reset = True
+            self.text.SetValue("Paste here")
+
+    def check_clipboard(self, event):
+        if not wx.TheClipboard.IsOpened():
+            do = wx.TextDataObject()
+            wx.TheClipboard.Open()
+            success = wx.TheClipboard.GetData(do)
+            wx.TheClipboard.Close()
+            if success:
+                text = do.GetText()
+                if text != self.prev_content:
+                    print "New clipboard content"
+                    self.text.SetValue(text)
+                    self.prev_content = text
+            else:
+                self.text.SetValue("There is no data in the clipboard in the required format")
 
 
 class MainFrame(wx.Frame):
@@ -81,6 +120,8 @@ class MainFrame(wx.Frame):
         wx.Frame.__init__(self, *args, **kwargs)
 
         self.session = Session()
+
+        self.SetBackgroundColour((240, 240, 240))
 
         # Build the menu bar
         menu_bar = wx.MenuBar()
@@ -102,36 +143,53 @@ class MainFrame(wx.Frame):
         Publisher().subscribe(self.change_statusbar, "change_statusbar")
 
         # Add panels
-        self.connections_panel = ConnectionsPanel(self, self.session,
-                                                  size=(300,300))
-        self.display_panel = DisplayPanel(self)
-        self.options_panel = OptionsPanel(self)
+        connections_panel = ConnectionsPanel(self, self.session)
+        clipboard_panel = ClipboardPanel(self)
+        status_panel = OptionsPanel(self)
 
-        self.sizer_h = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer_v = wx.BoxSizer(wx.VERTICAL)
-        self.sizer_h.Add(self.connections_panel,
-                         proportion=0,
-                         flag=wx.EXPAND,
-                         border=5)
-        self.sizer_h.Add(self.sizer_v,
-                         proportion=1,
-                         flag=wx.EXPAND,
-                         border=5)
-        self.sizer_v.Add(self.options_panel,
-                         proportion=0,
-                         flag=wx.EXPAND,
-                         border=5)
-        self.sizer_v.Add(self.display_panel,
-                         proportion=1,
-                         flag=wx.EXPAND,
-                         border=5)
+        new_btn = wx.Button(self, label="New Connection")
+        new_btn.Bind(wx.EVT_BUTTON, self.on_new)
 
-        self.SetSizer(self.sizer_h)
-        self.SetAutoLayout(1)
-##        self.sizer_h.Fit(self) # Maybe use this when all panels have content
+        auto_sync_cb = wx.CheckBox(self, id=wx.ID_ANY,
+                                       label="Automatically Sync")
+
+        self.Bind(wx.EVT_CHECKBOX, self.on_toggle_auto, auto_sync_cb)
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_row_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        board_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        btn_flags = wx.SizerFlags().Proportion(0).Border(wx.ALL, 5).Bottom()
+        status_flags = wx.SizerFlags().Proportion(1).Expand().Border(wx.ALL, 5).Top()
+        flags = wx.SizerFlags().Proportion(0).Expand().Border(wx.ALL, 5)
+        board_flags = wx.SizerFlags().Proportion(0).Border(wx.ALL, 5).Right()
+        top_flags = wx.SizerFlags().Proportion(0).Expand().Border(wx.ALL, 5)
+        conn_flags = wx.SizerFlags().Proportion(1).Expand().Border(wx.ALL, 5)
+        
+        board_sizer.AddF(auto_sync_cb, flags)
+        board_sizer.AddF(clipboard_panel, flags)
+
+        top_row_sizer.AddF(new_btn, btn_flags)
+        top_row_sizer.AddF(status_panel, status_flags)
+        top_row_sizer.AddF(board_sizer, board_flags)
+
+        main_sizer.AddF(top_row_sizer, top_flags)
+        main_sizer.AddF(connections_panel, conn_flags)
+
+        self.SetSizer(main_sizer)
 
     def change_statusbar(self, msg):
         self.SetStatusText(msg.data)
+
+    def on_new(self, event):
+        Publisher().sendMessage(("new_connection"))
+
+    def on_toggle_auto(self, event):
+        if event.IsChecked():
+            print "auto sync on"
+        else:
+            print "auto sync off"
+        Publisher().sendMessage(("auto_toggle"), event.IsChecked())
 
     def on_about(self, event):
         aboutbox = AboutDialog(self)
@@ -144,6 +202,6 @@ class MainFrame(wx.Frame):
 if __name__ == '__main__':
     app = wx.App(False)
     frame = MainFrame(None, title=info.NAME, size=FRAME_SIZE,
-                      style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
+                      style=wx.DEFAULT_FRAME_STYLE)# ^ wx.RESIZE_BORDER)
     frame.Show()
     app.MainLoop()

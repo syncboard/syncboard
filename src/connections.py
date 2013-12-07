@@ -18,6 +18,7 @@
 """
 
 MAX_ALIAS_LENGTH = 15
+MAX_ADDRESS_LENGTH = 15
 
 class ConnectionManager:
     def __init__(self):
