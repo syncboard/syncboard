@@ -31,6 +31,7 @@ from gui_connections import ConnectionsPanel
 from session import Session
 
 FRAME_SIZE = (500, 510)
+BGD_COLOR = (240, 240, 240)
 
 class MainFrame(wx.Frame):
     """Main Frame  of the app."""
@@ -39,7 +40,7 @@ class MainFrame(wx.Frame):
 
         self.session = Session()
 
-        self.SetBackgroundColour((240, 240, 240))
+        self.SetBackgroundColour(BGD_COLOR)
 
         # Build the menu bar
         menu_bar = wx.MenuBar()
