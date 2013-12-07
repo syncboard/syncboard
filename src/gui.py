@@ -62,9 +62,10 @@ class MainFrame(wx.Frame):
         Publisher().subscribe(self.change_statusbar, "change_statusbar")
 
         # Add panels
-        connections_panel = ConnectionsPanel(self, self.session)
+        connections_panel = ConnectionsPanel(self, self.session, BGD_COLOR)
         clipboard_panel = ClipboardPanel(self)
         status_panel = StatusPanel(self)
+        status_panel.SetBackgroundColour(BGD_COLOR)
 
         new_btn = wx.Button(self, label="New Connection")
         new_btn.Bind(wx.EVT_BUTTON, self.on_new)

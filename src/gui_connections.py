@@ -266,14 +266,19 @@ class ConnectionWindow(wx.Panel):
 
 class ConnectionsPanel(wx.Panel):
     """This Panel is for managing and displaying connections"""
-    def __init__(self, parent, session, *args, **kwargs):
+    def __init__(self, parent, session, bgd_color, *args, **kwargs):
         wx.Panel.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         self.session = session
 
+        self.bgd_color = bgd_color
+
+        self.SetBackgroundColour(self.bgd_color)
+
         self.scroll_window = scrolled.ScrolledPanel(self, wx.ID_ANY,
                                  style = wx.SUNKEN_BORDER,
                                  name="connection list")
+        self.scroll_window.SetBackgroundColour(self.bgd_color)
         self.scroll_sizer = wx.BoxSizer(wx.VERTICAL)
         
         self.config_size()
@@ -324,6 +329,7 @@ class ConnectionsPanel(wx.Panel):
 
     def new_connection(self, msg):
         new_box = NewConnectionDialog(self)
+        new_box.SetBackgroundColour(self.bgd_color)
         if new_box.ShowModal() == wx.ID_OK:
             alias = new_box.alias.GetValue()
             addr = new_box.address.GetValue()
@@ -341,6 +347,7 @@ class ConnectionsPanel(wx.Panel):
     def add_connection(self, conn):
         self.known_connections.add(conn)
         row = ConnectionWindow(self.scroll_window, conn, style=wx.RAISED_BORDER)
+        row.SetBackgroundColour(self.bgd_color)
         self.rows.add(row)
 
         self._add_row_to_sizer(row)
