@@ -107,10 +107,8 @@ class ConnectionWindow(wx.Panel):
         add_button("Accept", self.on_accept)
         add_button("Reject", self.on_remove)
 
-        size = (100, 20)
         add_button("Connect", self.on_connect)
 
-        size = (100, 20)
         add_button("Disconnect", self.on_disconnect)
 
         waiting = wx.StaticText(self, label="Request pending...")
@@ -119,6 +117,8 @@ class ConnectionWindow(wx.Panel):
         self.sizer.AddF(waiting, flags)
         waiting.Hide()
         self.buttons["Waiting"] = waiting
+
+        add_button("Cancel", self.on_cancel)
 
         self.SetSizerAndFit(self.sizer)
 
@@ -160,11 +160,13 @@ class ConnectionWindow(wx.Panel):
 
     def on_connect(self, event):
         Publisher().sendMessage(("reconnect"), self)
-        print "TODO: implement reconnect"
 
     def on_disconnect(self, event):
         Publisher().sendMessage(("disconnect"), self)
         print "TODO: implement disconect"
+
+    def on_cancel(self, event):
+        Publisher().sendMessage(("cancel"), self)
 
     def on_update_state(self, event):
         def hide_buttons():
@@ -187,6 +189,7 @@ class ConnectionWindow(wx.Panel):
         def show_waiting():
             hide_buttons()
             self.buttons["Waiting"].Show()
+            self.buttons["Cancel"].Show()
             
         if self.state == None:
             if self.connection.status == Connection.PENDING:
@@ -294,6 +297,9 @@ class ConnectionsPanel(wx.Panel):
         Publisher().subscribe(self.new_connection, "new_connection")
         Publisher().subscribe(self.accept_connection, "accept_connection")
         Publisher().subscribe(self.remove_connection, "remove_connection")
+        Publisher().subscribe(self.request_connection, "reconnect")
+        Publisher().subscribe(self.disconnect, "disconnect")
+        Publisher().subscribe(self.cancel_request, "cancel")
 
         self.sync_timer = wx.Timer(self, wx.ID_ANY)
         self.Bind(wx.EVT_TIMER, self.on_sync, self.sync_timer)
@@ -372,6 +378,18 @@ class ConnectionsPanel(wx.Panel):
     def accept_connection(self, msg):
         conn = msg.data.connection
         self.session.accept_connection(conn.address)
+
+    def request_connection(self, msg):
+        conn = msg.data.connection
+        self.session.request_connection(conn.address)
+
+    def disconnect(self, msg):
+        conn = msg.data.connection
+        self.session.disconnect(conn.address)
+
+    def cancel_request(self, msg):
+        conn = msg.data.connection
+        self.session.cancel_request(conn.address)
 
     def on_sort(self, event):
         for row in self.rows:

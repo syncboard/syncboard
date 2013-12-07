@@ -46,7 +46,31 @@ class Session:
             print "Connection from %s accepted" % address
             conn.status = Connection.CONNECTED
         else:
-            print "Error: no connection from %s exists"
+            print "Error: no connection from %s exists" % address
+
+    def request_connection(self, address):
+        conn = self.get_connection(address)
+        if conn:
+            print "Request to connect to %s sent" % address
+            conn.status = Connection.PENDING
+        else:
+            print "Error: no connection to %s exists" % address
+
+    def disconnect(self, address):
+        conn = self.get_connection(address)
+        if conn:
+            print "Disconnected from %s" % address
+            conn.status = Connection.NOT_CONNECTED
+        else:
+            print "Error: no connection to %s exists" % address    
+
+    def cancel_request(self, address):
+        conn = self.get_connection(address)
+        if conn:
+            print "Request to %s canceled" % address
+            conn.status = Connection.NOT_CONNECTED
+        else:
+            print "Error: no connection to %s exists" % address
 
     def del_connection(self, address):
         self.con_mgr.del_connection(address)
