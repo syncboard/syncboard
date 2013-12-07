@@ -94,24 +94,24 @@ class ConnectionWindow(wx.Panel):
 
         self.state = None
         self.buttons = {}
-        def add_button(label, size, callback):
+        def add_button(label, callback):
             button = wx.Button(self, wx.ID_ANY,
-                               size=size, label=label)
+                               label=label)
             button.Bind(wx.EVT_BUTTON, callback)
             flags = wx.SizerFlags().Proportion(0).Border(wx.ALL, 5)
+            flags.Align(wx.ALIGN_CENTER_VERTICAL)
             self.sizer.AddF(button, flags)
             button.Hide()
             self.buttons[label] = button
 
-        size = (50, 20)
-        add_button("Accept", size, self.on_accept)
-        add_button("Reject", size, self.on_remove)
+        add_button("Accept", self.on_accept)
+        add_button("Reject", self.on_remove)
 
         size = (100, 20)
-        add_button("Connect", size, self.on_connect)
+        add_button("Connect", self.on_connect)
 
         size = (100, 20)
-        add_button("Disconnect", size, self.on_disconnect)
+        add_button("Disconnect", self.on_disconnect)
 
         waiting = wx.StaticText(self, label="Request pending...")
         flags = wx.SizerFlags().Proportion(0).Border(wx.ALL, 5)
@@ -133,10 +133,10 @@ class ConnectionWindow(wx.Panel):
         self.initSize = self.GetMinSize()
 
 ### For testing:
-##        if self.connection.status == Connection.REQUEST:
-##            self.time = -1
-##        else:
-##            self.time = 0
+        # if self.connection.status == Connection.REQUEST:
+        #     self.time = -1
+        # else:
+        #     self.time = 0
 ###
         
     def get_sizer(self):
@@ -237,30 +237,30 @@ class ConnectionWindow(wx.Panel):
             change.SetBackgroundColour(self.DEFAULT_COLOR)
 
 ### For testing:
-##        if self.time > 100:
-##            self.connection.status = Connection.NOT_CONNECTED
-##        elif self.time > 90:
-##            self.connection.status = Connection.PENDING
-##        elif self.time > 80:
-##            self.connection.status = Connection.CONNECTED
-##        elif self.time > 70:
-##            self.connection.status = Connection.REQUEST
-##        elif self.time > 60:
-##            self.connection.status = Connection.NOT_CONNECTED
-##        elif self.time > 50:
-##            self.connection.status = Connection.REQUEST
-##        elif self.time > 40:
-##            self.connection.status = Connection.NOT_CONNECTED
-##        elif self.time > 30:
-##            self.connection.status = Connection.CONNECTED
-##        elif self.time > 20:
-##            self.connection.status = Connection.NOT_CONNECTED
-##        elif self.time > 10:
-##            self.connection.status = Connection.CONNECTED
-##        elif self.time > 0:
-##            self.connection.status = Connection.PENDING
-##        if self.time >= 0:
-##            self.time += 1
+        # if self.time > 100:
+        #     self.connection.status = Connection.NOT_CONNECTED
+        # elif self.time > 90:
+        #     self.connection.status = Connection.PENDING
+        # elif self.time > 80:
+        #     self.connection.status = Connection.CONNECTED
+        # elif self.time > 70:
+        #     self.connection.status = Connection.REQUEST
+        # elif self.time > 60:
+        #     self.connection.status = Connection.NOT_CONNECTED
+        # elif self.time > 50:
+        #     self.connection.status = Connection.REQUEST
+        # elif self.time > 40:
+        #     self.connection.status = Connection.NOT_CONNECTED
+        # elif self.time > 30:
+        #     self.connection.status = Connection.CONNECTED
+        # elif self.time > 20:
+        #     self.connection.status = Connection.NOT_CONNECTED
+        # elif self.time > 10:
+        #     self.connection.status = Connection.CONNECTED
+        # elif self.time > 0:
+        #     self.connection.status = Connection.PENDING
+        # if self.time >= 0:
+        #     self.time += 1
 ###
         self.Refresh()
 
@@ -300,17 +300,17 @@ class ConnectionsPanel(wx.Panel):
         self.known_connections = set()
 
 ### For testing
-##        self.new_timer = wx.Timer(self, wx.ID_ANY)
-##        self.Bind(wx.EVT_TIMER, self.on_new_timer, self.new_timer)
-##        self.new_timer.Start(1000)
-##
-##    def on_new_timer(self, event):
-##        from random import randint
-##        if randint(1, 5) == 1:
-##            addr = str(randint(5000, 1000000))
-##            self.session.new_connection("", addr)
-##            c = self.session.get_connection(addr)
-##            c.status = Connection.REQUEST
+    #     self.new_timer = wx.Timer(self, wx.ID_ANY)
+    #     self.Bind(wx.EVT_TIMER, self.on_new_timer, self.new_timer)
+    #     self.new_timer.Start(1000)
+
+    # def on_new_timer(self, event):
+    #     from random import randint
+    #     if randint(1, 5) == 1:
+    #         addr = str(randint(5000, 1000000))
+    #         self.session.new_connection("", addr)
+    #         c = self.session.get_connection(addr)
+    #         c.status = Connection.REQUEST
 ###
 
     def on_sync(self, event):
