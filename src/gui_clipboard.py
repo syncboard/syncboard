@@ -28,9 +28,12 @@ class ClipboardPanel(wx.Panel):
     OK_COLOR = (0, 200, 0)
     BAD_COLOR = (255, 100, 0)
     UNKNOWN_COLOR = (200, 0, 0)
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, bgd_color, *args, **kwargs):
         wx.Panel.__init__(self, parent, *args, **kwargs)
         self.parent = parent
+
+        self.bgd_color = bgd_color
+        self.SetBackgroundColour(self.bgd_color)
         
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -38,7 +41,7 @@ class ClipboardPanel(wx.Panel):
 
         self.text = wx.TextCtrl(self, size=(150, 50),
                         style=wx.TE_CENTER | wx.TE_MULTILINE | wx.TE_NO_VSCROLL)
-        
+        self.text.SetBackgroundColour(self.bgd_color)
         sizer.Add(self.text)
 
         self.SetSizerAndFit(sizer)

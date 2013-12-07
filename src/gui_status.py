@@ -22,9 +22,12 @@ from wx.lib.pubsub import Publisher
 
 class StatusPanel(wx.Panel):
     """This Panel is for managing options"""
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, bgd_color, *args, **kwargs):
         wx.Panel.__init__(self, parent, *args, **kwargs)
         self.parent = parent
+
+        self.bgd_color = bgd_color
+        self.SetBackgroundColour(self.bgd_color)
 
         title_font = wx.Font(pointSize=10,
                              family=wx.FONTFAMILY_DEFAULT,
