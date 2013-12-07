@@ -103,10 +103,6 @@ class MainFrame(wx.Frame):
         Publisher().sendMessage(("new_connection"))
 
     def on_toggle_auto(self, event):
-        if event.IsChecked():
-            print "auto sync on"
-        else:
-            print "auto sync off"
         Publisher().sendMessage(("auto_toggle"), event.IsChecked())
 
     def on_about(self, event):

@@ -35,11 +35,20 @@ class ClipboardPanel(wx.Panel):
 
         self.reset()
 
+        Publisher().subscribe(self.auto_toggle, "auto_toggle")
+
         self.i = 0
 
+    def auto_toggle(self, msg):
+        m = "TODO: implement auto sync"
+        if msg:
+            print "auto sync on - %s" % m
+        else:
+            print "auto sync off - %s" % m
+
     def on_copy(self, event):
-        data = "TODO: Get data from backend %d" % self.i
         self.i += 1
+        data = "You've copied %d times - TODO: Get data from backend" % self.i
         
         clipdata = wx.TextDataObject()
         clipdata.SetText(data)
@@ -47,7 +56,7 @@ class ClipboardPanel(wx.Panel):
         wx.TheClipboard.SetData(clipdata)
         wx.TheClipboard.Close()
 
-        print "You clipboard:", data
+        print "Youre clipboard:", data
 
     def on_paste(self, event):
         do = wx.TextDataObject()
@@ -57,7 +66,7 @@ class ClipboardPanel(wx.Panel):
         if success:
             text = do.GetText()
             if text != self.prev_clipboard_content:
-                print "You pasted:", text
+                print "You pasted: %s - TODO: Send data to backend" % text
                 self.prev_clipboard_content = text
         else:
             print "You pasted unsupported invalid data"

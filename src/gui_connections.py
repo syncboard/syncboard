@@ -183,7 +183,6 @@ class ConnectionWindow(wx.Panel):
             self.buttons["Disconnect"].Show()
 
         def show_waiting():
-            print 'show'
             hide_buttons()
             self.buttons["Waiting"].Show()
             
