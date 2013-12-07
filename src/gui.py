@@ -25,94 +25,12 @@
 import wx, info
 from wx.lib.pubsub import Publisher
 from gui_info import AboutDialog
+from gui_status import StatusPanel
+from gui_clipboard import ClipboardPanel
 from gui_connections import ConnectionsPanel
 from session import Session
 
 FRAME_SIZE = (500, 510)
-
-# TODO: move options and display to their own files
-
-class OptionsPanel(wx.Panel):
-    """This Panel is for managing options"""
-    def __init__(self, parent, *args, **kwargs):
-        wx.Panel.__init__(self, parent, *args, **kwargs)
-        self.parent = parent
-
-##        self.hotkey_cb = wx.CheckBox(self, id=wx.ID_ANY,
-##                                     label="Enable Shortcut Keys (Ctrl+Shift+C/V)")
-##        self.hotkey_cb.SetValue(True)
-##        self.auto_sync_cb = wx.CheckBox(self, id=wx.ID_ANY,
-##                                       label="Automatically Sync")
-
-##        self.Bind(wx.EVT_CHECKBOX, self.on_check_box, self.hotkey_cb)
-##        self.Bind(wx.EVT_CHECKBOX, self.on_check_box, self.auto_sync_cb)
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-##        sizer.Add(self.hotkey_cb, proportion=0, flag=wx.ALL, border=10)
-##        sizer.Add(self.auto_sync_cb, proportion=0, flag=wx.ALL, border=10)
-        t = wx.StaticText(self, label="Status")
-        sizer.Add(t)
-        self.SetSizerAndFit(sizer)
-
-    def on_check_box(self, event):
-        cb = event.GetEventObject()
-        if cb == self.hotkey_cb:
-            print "hotkey: ", event.IsChecked()
-        elif cb == self.auto_sync_cb:
-            print "auto: ", event.IsChecked()
-
-        
-class ClipboardPanel(wx.Panel):
-    """
-    This Panel is where the user copies and pastes. (it will also be for
-    displaying clipboard contents if we choose to do so)
-    """
-    def __init__(self, parent, *args, **kwargs):
-        wx.Panel.__init__(self, parent, *args, **kwargs)
-        self.parent = parent
-        
-        sizer = wx.BoxSizer(wx.VERTICAL)
-
-        self.text = wx.TextCtrl(self, size=(150, 50),
-                                style=wx.TE_CENTER | wx.TE_MULTILINE | wx.TE_NO_VSCROLL,
-                                value="\nCopy/Paste Here")
-        sizer.Add(self.text)
-
-        self.SetSizerAndFit(sizer)
-
-##        self.Bind(wx.EVT_IDLE, self.check_clipboard)
-        self.Bind(wx.EVT_TEXT_PASTE, self.new_paste)
-        self.Bind(wx.EVT_TEXT, self.reset)
-
-        self.prev_content = ""
-        self.dont_reset = False
-
-    def new_paste(self, event):
-        print "new paste"
-        self.reset(None)
-
-    def reset(self, event):
-        if self.dont_reset:
-            self.dont_reset = False
-        else:
-            self.dont_reset = True
-            self.text.SetValue("Paste here")
-
-    def check_clipboard(self, event):
-        if not wx.TheClipboard.IsOpened():
-            do = wx.TextDataObject()
-            wx.TheClipboard.Open()
-            success = wx.TheClipboard.GetData(do)
-            wx.TheClipboard.Close()
-            if success:
-                text = do.GetText()
-                if text != self.prev_content:
-                    print "New clipboard content"
-                    self.text.SetValue(text)
-                    self.prev_content = text
-            else:
-                self.text.SetValue("There is no data in the clipboard in the required format")
-
 
 class MainFrame(wx.Frame):
     """Main Frame  of the app."""
@@ -145,7 +63,7 @@ class MainFrame(wx.Frame):
         # Add panels
         connections_panel = ConnectionsPanel(self, self.session)
         clipboard_panel = ClipboardPanel(self)
-        status_panel = OptionsPanel(self)
+        status_panel = StatusPanel(self)
 
         new_btn = wx.Button(self, label="New Connection")
         new_btn.Bind(wx.EVT_BUTTON, self.on_new)
