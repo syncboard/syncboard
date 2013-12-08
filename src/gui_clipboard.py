@@ -40,7 +40,7 @@ class ClipboardPanel(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.text = wx.TextCtrl(self, size=(150, 50),
-                        style=wx.TE_CENTER | wx.TE_MULTILINE | wx.TE_NO_VSCROLL | wx.TE_READONLY)
+                        style=wx.TE_CENTER | wx.TE_MULTILINE | wx.TE_NO_VSCROLL)
         self.text.SetBackgroundColour(self.bgd_color)
         sizer.Add(self.text)
 
@@ -49,6 +49,7 @@ class ClipboardPanel(wx.Panel):
         self.Bind(wx.EVT_IDLE, self.check_clipboard)
         self.has_valid_data = False
 
+        self.Bind(wx.EVT_TEXT, self.on_edit)
         self.Bind(wx.EVT_TEXT_COPY, self.on_copy)
         self.Bind(wx.EVT_TEXT_PASTE, self.on_paste)
 
@@ -113,6 +114,9 @@ class ClipboardPanel(wx.Panel):
 
     def on_unfocus(self, event):
         self.has_focus = False
+        self._set_message()
+
+    def on_edit(self, event):
         self._set_message()
 
     def on_copy(self, event=None):
