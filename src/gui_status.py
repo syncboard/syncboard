@@ -50,42 +50,44 @@ class StatusPanel(wx.Panel):
         local_sizer.AddF(t, flags)
 
         self.local_type = wx.StaticText(self, label="Empty")
-        flags.Border(wx.LEFT, 10)
+        flags.Border(wx.LEFT, 30).Right()
         local_sizer.AddF(self.local_type, flags)
 
-        flags = wx.SizerFlags().Proportion(0)
+        flags = wx.SizerFlags().Proportion(0).Border(wx.TOP, 10)
         sizer.AddF(local_sizer, flags)
 
-        # self.new = wx.StaticText(self, label="NEW")
-        # self.new.SetFont(title_font)
-        # self.new.SetForegroundColour("green")
-        # self.new.Hide()
-        # flags = wx.SizerFlags().Proportion(1).Border(wx.LEFT, 10)
-        # title_sizer.AddF(self.new, flags)
+        shared_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        t = wx.StaticText(self, label="Shared Clipboard:")
+        flags = wx.SizerFlags().Proportion(0)
+        shared_sizer.AddF(t, flags)
 
-        # flags = wx.SizerFlags().Proportion(0).Border(wx.LEFT, 20)
-        # sizer.AddF(title_sizer, flags)
+        self.shared_type = wx.StaticText(self, label="Empty")
+        flags.Border(wx.LEFT, 12).Right()
+        shared_sizer.AddF(self.shared_type, flags)
+
+        self.new = wx.StaticText(self, label="NEW")
+        self.new.SetForegroundColour("green")
+        self.new.Hide()
+        flags = wx.SizerFlags().Proportion(0).Border(wx.LEFT, 10)
+        shared_sizer.AddF(self.new, flags)
+
+        flags = wx.SizerFlags().Proportion(0).Border(wx.TOP, 5)
+        sizer.AddF(shared_sizer, flags)
         
         self.SetSizerAndFit(sizer)
 
-        Publisher().subscribe(self.update_new, "auto_toggle")
         Publisher().subscribe(self.user_copy, "user_copy")
         Publisher().subscribe(self.user_paste, "user_paste")
         Publisher().subscribe(self.update_clipboard, "update_clipboard")
-
-    def update_new(self, msg):
-        state = msg.data
-        if msg.data:
-            self.new.Show()
-        else:
-            self.new.Hide()
-        self.GetSizer().Layout()
+        Publisher().subscribe(self.update_shared_clipboard, "update_shared_clipboard")
 
     def user_copy(self, msg):
-        print "user copy"
+        self.new.Hide()
+        self.GetSizer().Layout()
 
     def user_paste(self, msg):
-        print "user paste"
+        self.new.Hide()
+        self.GetSizer().Layout()
 
     def update_clipboard(self, msg):
         data_type = msg.data
@@ -96,3 +98,24 @@ class StatusPanel(wx.Panel):
             color = self.BAD_COLOR
 
         self.local_type.SetForegroundColour(color)
+
+    def update_shared_clipboard(self, msg):
+        data_type = msg.data
+        self.shared_type.SetLabel(data_type)
+        if data_type != "Empty":
+            self.new.Show()
+            self.GetSizer().Layout()
+
+        # What happens if two version of the app support different data types
+        # and are communicating? I would expect if the shared clipboard
+        # contained data not supported by your version you wouldn't be able
+        # to copy from it. If we need to handle this case then the code below
+        # may become relevent.
+
+        # if data_type == TXT:
+        #     color = self.OK_COLOR
+        # else:
+        #     color = self.BAD_COLOR
+
+        # self.local_type.SetForegroundColour(color)
+

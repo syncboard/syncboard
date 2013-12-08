@@ -67,6 +67,7 @@ class ClipboardPanel(wx.Panel):
 
         self.local_prev = ""
         self.local_prev_type = "Uknown"
+        self.shared_prev_type = "Empty"
         text_obj = wx.TextDataObject()
         wx.TheClipboard.Open()
         contains_text = wx.TheClipboard.GetData(text_obj)
@@ -100,7 +101,7 @@ class ClipboardPanel(wx.Panel):
                     self.text.SetValue("Copy/Paste Here\nReady")
                     self.text.SetForegroundColour(self.OK_COLOR)
                 else:
-                    self.text.SetValue("Copy/Paste Here\nNotReady\nUnsupported data")
+                    self.text.SetValue("Copy/Paste Here\nCan't Paste:\nUnsupported data")
                     self.text.SetForegroundColour(self.BAD_COLOR)
             else:
                 self.text.SetValue("Copy/Paste Here")
@@ -180,8 +181,9 @@ class ClipboardPanel(wx.Panel):
                 wx.DataFormat(wx.DF_BITMAP))
             wx.TheClipboard.Close()
             new_type = "Unkown"
+            local = None
             if contains_text:
-                text = text_obj.GetText()
+                local = text_obj.GetText()
                 self.has_valid_data = True
                 new_type = TXT
             elif contains_bmp:
@@ -196,20 +198,26 @@ class ClipboardPanel(wx.Panel):
                 Publisher().sendMessage(("update_clipboard"), new_type)
                 self._set_message()
 
+            shared = self.session.get_clipboard_data()
+            shared_type = self.session.get_clipboard_data_type()
+            if (shared and not local) or (shared != local and
+                                          self.local_prev == local):
+                if shared_type == None: shared_type = "Empty"
+                self.shared_prev_type = shared_type
+                Publisher().sendMessage(("update_shared_clipboard"), shared_type)
+
             if self.auto_sync:
-                shared = self.session.get_clipboard_data()
-                shared_type = self.session.get_clipboard_data_type()
                 if shared_type == TXT:
                     # If both shared clipboard and local clipboard
                     # contain different text.
-                    if contains_text and shared != text:
+                    if contains_text and shared != local:
                         # If previous local clipboard value is the same as the
                         # current local clipboard value then it was the shared
                         # clipboard that changed, so copy its value to local.
-                        if self.local_prev == text: # External update
+                        if self.local_prev == local: # External update
                             self.on_copy()
                         else: # This user updated
-                            self.local_prev = text
+                            self.local_prev = lcal
                             self.on_paste()
                     # Local doesn't contain text but shared does so update local
                     elif not contains_text:
@@ -218,7 +226,5 @@ class ClipboardPanel(wx.Panel):
                 # and nothing in the local clipboard and then the user copies
                 # something after enbaling auto sync.
                 elif contains_text:
-                    self.local_prev = text
+                    self.local_prev = local
                     self.on_paste()
-                        
-                        

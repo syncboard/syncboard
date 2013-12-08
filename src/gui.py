@@ -30,7 +30,7 @@ from gui_clipboard import ClipboardPanel
 from gui_connections import ConnectionsPanel
 from session import Session
 
-FRAME_SIZE = (500, 510)
+FRAME_SIZE = (550, 510)
 BGD_COLOR = (240, 240, 240)
 
 class MainFrame(wx.Frame):
