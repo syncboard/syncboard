@@ -57,10 +57,10 @@ class ClipboardPanel(wx.Panel):
         self.text.Bind(wx.EVT_KILL_FOCUS, self.on_unfocus)
         self.has_focus = False
 
-        self.text.SetValue("Copy/Paste Here")
-
         Publisher().subscribe(self.auto_toggle, "auto_toggle")
         self.auto_sync = False
+
+        self.text.SetValue("Copy/Paste Here")
 
         self.local_prev = ""
         text_obj = wx.TextDataObject()
