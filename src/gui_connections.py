@@ -48,9 +48,11 @@ class NewConnectionDialog(wx.Dialog):
         self.address.SetMaxLength(MAX_ADDRESS_LENGTH)
         width = MAX_ADDRESS_LENGTH * (self.address.GetCharWidth() + offset)
         self.address.SetMinSize((width, height))
+        self.Bind(wx.EVT_TEXT, self.on_edit_address, self.address)
         
         cancel_btn = wx.Button(self, wx.ID_CANCEL, "Cancel")
-        ok_btn = wx.Button(self, wx.ID_OK, "OK")
+        self.ok_btn = wx.Button(self, wx.ID_OK, "OK")
+        self.ok_btn.Disable()
 
         flags = wx.SizerFlags().Border(wx.ALL, 5)
         
@@ -61,10 +63,20 @@ class NewConnectionDialog(wx.Dialog):
         sizer.AddF(self.address_label, flags=flags)
         sizer.AddF(self.address, flags=flags)
         sizer.AddF(cancel_btn, flags=flags)
-        sizer.AddF(ok_btn, flags=flags)       
+        sizer.AddF(self.ok_btn, flags=flags)       
         
         self.SetSizerAndFit(sizer)
         self.Center(wx.BOTH)
+
+    def on_edit_address(self, event):
+        import re
+        address_pattern = re.compile("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")
+        if address_pattern.match(self.address.GetValue()):
+            self.address.SetForegroundColour((0, 140, 0))
+            self.ok_btn.Enable()
+        else:
+            self.address.SetForegroundColour((140, 0, 0))
+            self.ok_btn.Disable()
 
 class ConnectionWindow(wx.Panel):
     """This Panel is individual connections"""
