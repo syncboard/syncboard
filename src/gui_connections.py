@@ -41,7 +41,7 @@ class NewConnectionDialog(wx.Dialog):
         
         width, height = self.alias.GetSizeTuple()
         width = MAX_ALIAS_LENGTH * (self.alias.GetCharWidth() + offset)
-	self.alias.SetMinSize((width, height))
+        self.alias.SetMinSize((width, height))
 
         self.address_label = wx.StaticText(self, wx.ID_ANY, "Address:")
         self.address = wx.TextCtrl(self)
@@ -77,6 +77,7 @@ class NewConnectionDialog(wx.Dialog):
         else:
             self.address.SetForegroundColour((140, 0, 0))
             self.ok_btn.Disable()
+        self.address.Refresh()
 
 class ConnectionWindow(wx.Panel):
     """This Panel is individual connections"""
