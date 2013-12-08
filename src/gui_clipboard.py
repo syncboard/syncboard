@@ -60,7 +60,10 @@ class ClipboardPanel(wx.Panel):
         Publisher().subscribe(self.auto_toggle, "auto_toggle")
         self.auto_sync = False
 
+        # For preveting mex recursion depth on Linux
+        self.setting_message = True
         self.text.SetValue("Copy/Paste Here")
+        self.setting_message = False
 
         self.local_prev = ""
         text_obj = wx.TextDataObject()
@@ -69,7 +72,6 @@ class ClipboardPanel(wx.Panel):
         wx.TheClipboard.Close()
         if contains_text:
             self.local_prev = text_obj.GetText()
-
 
 ### For testing
     #     self.test_timer = wx.Timer(self, wx.ID_ANY)
@@ -88,6 +90,7 @@ class ClipboardPanel(wx.Panel):
 ###
 
     def _set_message(self):
+        self.setting_message = True
         if self.auto_sync:
             self.text.SetValue("\nAuto Sync")
         else:
@@ -100,7 +103,8 @@ class ClipboardPanel(wx.Panel):
                     self.text.SetForegroundColour(self.BAD_COLOR)
             else:
                 self.text.SetValue("Copy/Paste Here")
-                self.text.SetForegroundColour(self.DEFAULT_COLOR)        
+                self.text.SetForegroundColour(self.DEFAULT_COLOR)
+        self.setting_message = False
 
     def auto_toggle(self, msg):
         self.auto_sync = msg.data
@@ -117,7 +121,8 @@ class ClipboardPanel(wx.Panel):
         self._set_message()
 
     def on_edit(self, event):
-        self._set_message()
+        if not self.setting_message:
+            self._set_message()
 
     def on_copy(self, event=None):
         data = self.session.get_clipboard_data()
