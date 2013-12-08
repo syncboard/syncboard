@@ -66,6 +66,7 @@ class ClipboardPanel(wx.Panel):
         self.setting_message = False
 
         self.local_prev = ""
+        self.local_prev_type = "Uknown"
         text_obj = wx.TextDataObject()
         wx.TheClipboard.Open()
         contains_text = wx.TheClipboard.GetData(text_obj)
@@ -178,13 +179,22 @@ class ClipboardPanel(wx.Panel):
             contains_bmp = wx.TheClipboard.IsSupported(
                 wx.DataFormat(wx.DF_BITMAP))
             wx.TheClipboard.Close()
+            new_type = "Unkown"
             if contains_text:
                 text = text_obj.GetText()
                 self.has_valid_data = True
+                new_type = TXT
             elif contains_bmp:
                 self.has_valid_data = False
+                new_type = "Bitmap"
             else:
                 self.has_valid_data = False
+                new_type = "Unkown"
+
+            if new_type != self.local_prev_type:
+                self.local_prev_type = new_type
+                Publisher().sendMessage(("update_clipboard"), new_type)
+                self._set_message()
 
             if self.auto_sync:
                 shared = self.session.get_clipboard_data()
@@ -204,7 +214,7 @@ class ClipboardPanel(wx.Panel):
                     # Local doesn't contain text but shared does so update local
                     elif not contains_text:
                         self.on_copy()
-                # Handles the caes that there is no data on shared clipboard
+                # Handles the case that there is no data on shared clipboard
                 # and nothing in the local clipboard and then the user copies
                 # something after enbaling auto sync.
                 elif contains_text:
