@@ -67,7 +67,7 @@ class ClipboardPanel(wx.Panel):
 
         self.local_prev = ""
         self.local_prev_type = "Uknown"
-        self.shared_prev_type = "Empty"
+        self.shared_prev = ""
         text_obj = wx.TextDataObject()
         wx.TheClipboard.Open()
         contains_text = wx.TheClipboard.GetData(text_obj)
@@ -76,19 +76,19 @@ class ClipboardPanel(wx.Panel):
             self.local_prev = text_obj.GetText()
 
 ### For testing
-    #     self.test_timer = wx.Timer(self, wx.ID_ANY)
-    #     self.Bind(wx.EVT_TIMER, self.on_test_timer, self.test_timer)
-    #     self.test_timer.Start(5000)
-
-    # def on_test_timer(self, event):
-    #     import random, string
-    #     text = "".join([random.choice(string.letters) for i in xrange(random.randint(10, 50))])
-    #     conns = self.session.connections()
-    #     if conns:
-    #         sender = random.choice(conns)
-    #         self.session.set_clipboard_data(text, TXT)
-    #         self.session._data_owner = sender
-    #         print "new data from %s" % sender.address
+##        self.test_timer = wx.Timer(self, wx.ID_ANY)
+##        self.Bind(wx.EVT_TIMER, self.on_test_timer, self.test_timer)
+##        self.test_timer.Start(5000)
+##
+##    def on_test_timer(self, event):
+##        import random, string
+##        text = "".join([random.choice(string.letters) for i in xrange(random.randint(10, 50))])
+##        conns = self.session.connections()
+##        if conns:
+##            sender = random.choice(conns)
+##            self.session.set_clipboard_data(text, TXT)
+##            self.session._data_owner = sender
+##            print "new data from %s" % sender.address
 ###
 
     def _set_message(self):
@@ -200,10 +200,9 @@ class ClipboardPanel(wx.Panel):
 
             shared = self.session.get_clipboard_data()
             shared_type = self.session.get_clipboard_data_type()
-            if (shared and not local) or (shared != local and
-                                          self.local_prev == local):
+            if shared != self.shared_prev:
+                self.shared_prev = shared
                 if shared_type == None: shared_type = "Empty"
-                self.shared_prev_type = shared_type
                 Publisher().sendMessage(("update_shared_clipboard"), shared_type)
 
             if self.auto_sync:

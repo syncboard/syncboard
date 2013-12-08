@@ -50,7 +50,7 @@ class StatusPanel(wx.Panel):
         local_sizer.AddF(t, flags)
 
         self.local_type = wx.StaticText(self, label="Empty")
-        flags.Border(wx.LEFT, 30).Right()
+        flags.Border(wx.LEFT, 20).Right()
         local_sizer.AddF(self.local_type, flags)
 
         flags = wx.SizerFlags().Proportion(0).Border(wx.TOP, 10)
@@ -62,12 +62,11 @@ class StatusPanel(wx.Panel):
         shared_sizer.AddF(t, flags)
 
         self.shared_type = wx.StaticText(self, label="Empty")
-        flags.Border(wx.LEFT, 12).Right()
+        flags.Border(wx.LEFT, 20).Right()
         shared_sizer.AddF(self.shared_type, flags)
 
         self.new = wx.StaticText(self, label="NEW")
         self.new.SetForegroundColour("green")
-        self.new.Hide()
         flags = wx.SizerFlags().Proportion(0).Border(wx.LEFT, 10)
         shared_sizer.AddF(self.new, flags)
 
@@ -76,18 +75,22 @@ class StatusPanel(wx.Panel):
         
         self.SetSizerAndFit(sizer)
 
+        self.new.Hide()
+
         Publisher().subscribe(self.user_copy, "user_copy")
         Publisher().subscribe(self.user_paste, "user_paste")
         Publisher().subscribe(self.update_clipboard, "update_clipboard")
         Publisher().subscribe(self.update_shared_clipboard, "update_shared_clipboard")
 
+        # Used to prevent "NEW" from poping up when the user pastes
+        self.user_pasted = False
+
     def user_copy(self, msg):
         self.new.Hide()
-        self.GetSizer().Layout()
 
     def user_paste(self, msg):
         self.new.Hide()
-        self.GetSizer().Layout()
+        self.user_pasted = True
 
     def update_clipboard(self, msg):
         data_type = msg.data
@@ -102,9 +105,11 @@ class StatusPanel(wx.Panel):
     def update_shared_clipboard(self, msg):
         data_type = msg.data
         self.shared_type.SetLabel(data_type)
-        if data_type != "Empty":
+        if not self.user_pasted and data_type != "Empty":
             self.new.Show()
-            self.GetSizer().Layout()
+            print 'show'
+
+        self.user_pasted = False
 
         # What happens if two version of the app support different data types
         # and are communicating? I would expect if the shared clipboard
