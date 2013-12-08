@@ -29,16 +29,39 @@ class Session:
     def __init__(self):
         # TODO: consider saving and loading the connections list to a file
         #       to preserve the list between sessions
-        self.con_mgr = ConnectionManager()
+        self._con_mgr = ConnectionManager()
+
+        # The data on the common clipboard.
+        self._clipboard_data = None
+        # Type of data on the clipboard (eg. text, bitmap, etc.)
+        # This should be one of the supported types in info.py
+        self._data_type = None
+        # None will mean that this client is owner, otherwise it should be a
+        # Connection object.
+        self._data_owner = None
+
+    def get_clipboard_data(self):
+        return self._clipboard_data
+
+    def get_clipboard_data_type(self):
+        return self._data_type
+
+    def get_clipboard_data_owner(self):
+        return self._data_owner
+
+    def set_clipboard_data(self, data, data_type):
+        self._clipboard_data = data
+        self._data_type = data_type
+        self._data_owner = None
 
     def connections(self):
-        return self.con_mgr.connections
+        return self._con_mgr.connections
 
     def get_connection(self, address):
-        return self.con_mgr.get_connection(address)
+        return self._con_mgr.get_connection(address)
 
     def new_connection(self, alias, address):
-        self.con_mgr.new_connection(alias, address)
+        self._con_mgr.new_connection(alias, address)
 
     def accept_connection(self, address):
         conn = self.get_connection(address)
@@ -73,5 +96,5 @@ class Session:
             print "Error: no connection to %s exists" % address
 
     def del_connection(self, address):
-        self.con_mgr.del_connection(address)
+        self._con_mgr.del_connection(address)
 

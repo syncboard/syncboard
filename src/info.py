@@ -35,3 +35,7 @@ VERSION = "0.0.0"
 COPYRIGHT = "(C) 2013"
 WEBSITE = ("https://github.com/syncboard/syncboard", "Source on Github")
 DEVELOPERS = [ "Brandon Edgren", "Nat Mote"]
+
+# Supported clipboard data types
+TXT = "Text"
+#BMP = "Bitmap"

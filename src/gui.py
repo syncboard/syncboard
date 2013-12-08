@@ -63,7 +63,7 @@ class MainFrame(wx.Frame):
 
         # Add panels
         connections_panel = ConnectionsPanel(self, self.session, BGD_COLOR)
-        clipboard_panel = ClipboardPanel(self, BGD_COLOR)
+        clipboard_panel = ClipboardPanel(self, self.session, BGD_COLOR)
         status_panel = StatusPanel(self, BGD_COLOR)
 
         new_btn = wx.Button(self, label="New Connection")
