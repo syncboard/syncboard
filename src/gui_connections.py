@@ -411,8 +411,6 @@ class ConnectionsPanel(wx.Panel):
             self.session.new_connection(alias, addr)
             conn = self.session.get_connection(addr)
 
-            self.add_connection(conn)
-            
         new_box.Destroy()
 
     def _add_row_to_sizer(self, row):
