@@ -172,3 +172,14 @@ class Session:
         """
         self._con_mgr.del_connection(address)
 
+    def update_alias(self, address, new_alias):
+        """
+            Changes the alias of the Connection with the given address to be
+            new_alias.
+        """
+        conn = self.get_connection(address)
+        if conn:
+            print "Updated alias of %s to %s" % (address, new_alias)
+            conn.alias = new_alias
+        else:
+            print "Error: no connection to %s exists" % address

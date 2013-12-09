@@ -23,32 +23,32 @@
 
 import wx
 import wx.lib.scrolledpanel as scrolled
+import wx.lib.stattext as st
 from wx.lib.pubsub import Publisher
 from connections import MAX_ALIAS_LENGTH, MAX_ADDRESS_LENGTH, Connection
 
-CON_PANEL_WIDTH = 305
-CON_PANEL_HEIGHT_OFFSET = 115 # subtracted from its containers height
 
 class NewConnectionDialog(wx.Dialog):
     def __init__(self, parent):
         wx.Dialog.__init__(self, parent, wx.ID_ANY, "New Connection")
 
+        # Declaring alias first to preserve tab order
         self.alias_label = wx.StaticText(self, wx.ID_ANY, "Alias (optional):")
         self.alias = wx.TextCtrl(self)
-        self.alias.SetMaxLength(MAX_ALIAS_LENGTH)
 
-        offset = 3
-        
-        width, height = self.alias.GetSizeTuple()
-        width = MAX_ALIAS_LENGTH * (self.alias.GetCharWidth() + offset)
-        self.alias.SetMinSize((width, height))
-
-        self.address_label = wx.StaticText(self, wx.ID_ANY, "Address:")
+        self.address_label = wx.StaticText(self, wx.ID_ANY, "IPv4 Address:")
         self.address = wx.TextCtrl(self)
         self.address.SetMaxLength(MAX_ADDRESS_LENGTH)
-        width = MAX_ADDRESS_LENGTH * (self.address.GetCharWidth() + offset)
+        width, height = self.address.GetSizeTuple()
+        char_width = 8
+        width = MAX_ADDRESS_LENGTH * char_width
         self.address.SetMinSize((width, height))
         self.Bind(wx.EVT_TEXT, self.on_edit_address, self.address)
+
+
+        self.alias.SetMaxLength(MAX_ALIAS_LENGTH)
+        self.alias.SetMinSize((width, height))
+
         
         cancel_btn = wx.Button(self, wx.ID_CANCEL, "Cancel")
         self.ok_btn = wx.Button(self, wx.ID_OK, "OK")
@@ -56,7 +56,7 @@ class NewConnectionDialog(wx.Dialog):
 
         flags = wx.SizerFlags().Border(wx.ALL, 5)
         
-        sizer = wx.GridSizer(3, 2)
+        sizer = wx.FlexGridSizer(3, 2)
         
         sizer.AddF(self.alias_label, flags=flags)
         sizer.AddF(self.alias, flags=flags)
@@ -79,6 +79,37 @@ class NewConnectionDialog(wx.Dialog):
             self.ok_btn.Disable()
         self.address.Refresh()
 
+
+class EditAliasDialog(wx.Dialog):
+    def __init__(self, parent, current_alias):
+        wx.Dialog.__init__(self, parent, wx.ID_ANY, "Edit Alias")
+
+        self.alias_label = wx.StaticText(self, wx.ID_ANY, "New Alias:")
+        self.alias = wx.TextCtrl(self)
+        self.alias.SetValue(current_alias)
+        self.alias.SetMaxLength(MAX_ALIAS_LENGTH)
+
+        width, height = self.alias.GetSizeTuple()
+        char_width = 8
+        width = MAX_ADDRESS_LENGTH * char_width
+        self.alias.SetMinSize((width, height))
+
+        cancel_btn = wx.Button(self, wx.ID_CANCEL, "Cancel")
+        self.ok_btn = wx.Button(self, wx.ID_OK, "OK")
+
+        flags = wx.SizerFlags().Border(wx.ALL, 5)
+        
+        sizer = wx.FlexGridSizer(3, 2)
+        
+        sizer.AddF(self.alias_label, flags=flags)
+        sizer.AddF(self.alias, flags=flags)
+        sizer.AddF(cancel_btn, flags=flags)
+        sizer.AddF(self.ok_btn, flags=flags)       
+        
+        self.SetSizerAndFit(sizer)
+        self.Center(wx.BOTH)
+
+
 class ConnectionWindow(wx.Panel):
     """This Panel is individual connections"""
     DEFAULT_COLOR = (240, 240, 240)
@@ -95,12 +126,19 @@ class ConnectionWindow(wx.Panel):
         self.rmv_btn.Bind(wx.EVT_ENTER_WINDOW, self.on_enter_remove)
         self.rmv_btn.Bind(wx.EVT_LEAVE_WINDOW, self.on_leave_remove)
         self.rmv_btn.Bind(wx.EVT_BUTTON, self.on_remove)
-        self.sizer.Add(self.rmv_btn, proportion=0, flag=wx.ALL, border=5)
+        flags = wx.SizerFlags().Proportion(0).Border(wx.ALL, 5)
+        self.sizer.AddF(self.rmv_btn, flags)
 
         size = (MAX_ALIAS_LENGTH * 8, 13)
         name = self.connection.address
         if self.connection.alias: name = self.connection.alias
-        self.label = wx.StaticText(self, label=name)
+        self.label = wx.TextCtrl(self, style=wx.TE_READONLY | wx.NO_BORDER)
+        self.label.SetValue(name)
+        self.label.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        self.label.SetBackgroundColour(self.GetBackgroundColour())
+        self.label.Bind(wx.EVT_LEFT_DOWN, self.on_click_label)
+        self.label.Bind(wx.EVT_ENTER_WINDOW, self.on_enter_label)
+        self.label.Bind(wx.EVT_LEAVE_WINDOW, self.on_leave_label)
         flags = wx.SizerFlags().Proportion(1).Expand().Border(wx.ALL, 5)
         flags.Align(wx.ALIGN_CENTER_VERTICAL)
         self.sizer.AddF(self.label, flags)
@@ -151,7 +189,7 @@ class ConnectionWindow(wx.Panel):
         # else:
         #     self.time = 0
 ###
-        
+
     def get_sizer(self):
         return self.sizer
 
@@ -167,6 +205,19 @@ class ConnectionWindow(wx.Panel):
     def on_remove(self, event):
         Publisher().sendMessage(("change_statusbar"), "")
         Publisher().sendMessage(("remove_connection"), self)
+
+    def on_enter_label(self, event):
+        msg = "Edit alias"
+        Publisher().sendMessage(("change_statusbar"), msg)
+        event.Skip()
+
+    def on_leave_label(self, event):
+        Publisher().sendMessage(("change_statusbar"), "")
+        event.Skip()
+
+    def on_click_label(self, event):
+        print "clicked label"
+        Publisher().sendMessage(("edit_alias"), self)
 
     def on_accept(self, event):
         Publisher().sendMessage(("accept_connection"), self)
@@ -254,6 +305,8 @@ class ConnectionWindow(wx.Panel):
         else:
             change.SetBackgroundColour(self.DEFAULT_COLOR)
 
+        self.label.SetBackgroundColour(self.GetBackgroundColour())
+
 ### For testing:
         # if self.time > 100:
         #     self.connection.status = Connection.NOT_CONNECTED
@@ -313,6 +366,7 @@ class ConnectionsPanel(wx.Panel):
         Publisher().subscribe(self.request_connection, "reconnect")
         Publisher().subscribe(self.disconnect, "disconnect")
         Publisher().subscribe(self.cancel_request, "cancel")
+        Publisher().subscribe(self.edit_alias, "edit_alias")
 
         self.sync_timer = wx.Timer(self, wx.ID_ANY)
         self.Bind(wx.EVT_TIMER, self.on_sync, self.sync_timer)
@@ -403,6 +457,20 @@ class ConnectionsPanel(wx.Panel):
     def cancel_request(self, msg):
         conn = msg.data.connection
         self.session.cancel_request(conn.address)
+
+    def edit_alias(self, msg):
+        conn = msg.data.connection
+        current_alias = conn.alias
+
+        edit_box = EditAliasDialog(self, current_alias)
+        edit_box.SetBackgroundColour(self.bgd_color)
+
+        if edit_box.ShowModal() == wx.ID_OK:
+            new_alias = edit_box.alias.GetValue()
+            self.session.update_alias(conn.address, new_alias)
+            msg.data.label.SetValue(new_alias)
+
+        edit_box.Destroy()
 
     def on_sort(self, event):
         for row in self.rows:
