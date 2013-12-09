@@ -50,20 +50,53 @@ class Session:
         return self._data_owner
 
     def set_clipboard_data(self, data, data_type):
+        """
+            This is called (by the gui) when the user pastes to the app.
+        """
         self._clipboard_data = data
         self._data_type = data_type
         self._data_owner = None
 
     def connections(self):
+        """
+            Returns a list of all the connections
+        """
         return self._con_mgr.connections
 
     def get_connection(self, address):
+        """
+            Returns the Connection object that has the given address
+        """
         return self._con_mgr.get_connection(address)
 
     def new_connection(self, alias, address):
+        """
+            Creates a new Connection to the given address and if there is
+            a Syncboard app running at that address then that user will
+            see a new connection appear (with the address on this end) with
+            status REQUEST.
+            
+            After this has executed:
+            New Connection on both ends.
+            Connection on this end status: PENDING
+            Conneciton on other end status: REQUEST
+        """
         self._con_mgr.new_connection(alias, address)
 
     def accept_connection(self, address):
+        """
+            Called when the user accepts the request from the Connection with
+            the given address. Meaning, there was a Connection with status
+            REQUEST and user accepted it.
+
+            Before this is called:
+            Connection on this end status: REQUEST
+            Conneciton on other end status: PENDING
+
+            After this has executed:
+            Connection on this end status: CONNECTED
+            Conneciton on other end status: CONNECTED
+        """
         conn = self.get_connection(address)
         if conn:
             print "Connection from %s accepted" % address
@@ -72,6 +105,18 @@ class Session:
             print "Error: no connection from %s exists" % address
 
     def request_connection(self, address):
+        """
+            This is like new_connection except in this case the Connection
+            with the given address already existed and had status NOT_CONNECTED.
+
+            Before this is called:
+            Connection on this end status: NOT_CONNECTED
+            Conneciton on other end status: NOT_CONNECTED
+
+            After this has executed:
+            Connection on this end status: PENDING
+            Conneciton on other end status: REQUEST
+        """
         conn = self.get_connection(address)
         if conn:
             print "Request to connect to %s sent" % address
@@ -80,6 +125,18 @@ class Session:
             print "Error: no connection to %s exists" % address
 
     def disconnect(self, address):
+        """
+            This is called when the user has an open connection to the given
+            address and wants to close the connection.
+
+            Before this is called:
+            Connection on this end status: CONNECTED
+            Conneciton on other end status: CONNECTED
+
+            After this has executed:
+            Connection on this end status: NOT_CONNECTED
+            Conneciton on other end status: NOT_CONNECTED
+        """
         conn = self.get_connection(address)
         if conn:
             print "Disconnected from %s" % address
@@ -88,6 +145,19 @@ class Session:
             print "Error: no connection to %s exists" % address    
 
     def cancel_request(self, address):
+        """
+            This is called when the user has requested a connection to the given
+            address and the request is still pending but the user wants to
+            cancel the request.
+
+            Before this is called:
+            Connection on this end status: PENDING
+            Conneciton on other end status: REQUEST
+
+            After this has executed:
+            Connection on this end status: NOT_CONNECTED
+            Conneciton on other end status: NOT_CONNECTED
+        """
         conn = self.get_connection(address)
         if conn:
             print "Request to %s canceled" % address
@@ -96,5 +166,9 @@ class Session:
             print "Error: no connection to %s exists" % address
 
     def del_connection(self, address):
+        """
+            Removes the Connection with the given address from the list of
+            connections.
+        """
         self._con_mgr.del_connection(address)
 
