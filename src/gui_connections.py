@@ -81,10 +81,10 @@ class NewConnectionDialog(wx.Dialog):
 
 
 class EditAliasDialog(wx.Dialog):
-    def __init__(self, parent, current_alias):
+    def __init__(self, parent, current_alias, address):
         wx.Dialog.__init__(self, parent, wx.ID_ANY, "Edit Alias")
 
-        self.alias_label = wx.StaticText(self, wx.ID_ANY, "New Alias:")
+        self.alias_label = wx.StaticText(self, wx.ID_ANY, "Alias:")
         self.alias = wx.TextCtrl(self)
         self.alias.SetValue(current_alias)
         self.alias.SetMaxLength(MAX_ALIAS_LENGTH)
@@ -93,6 +93,9 @@ class EditAliasDialog(wx.Dialog):
         char_width = 8
         width = MAX_ADDRESS_LENGTH * char_width
         self.alias.SetMinSize((width, height))
+
+        self.address_label = wx.StaticText(self, wx.ID_ANY, "IPv4 Address:")
+        self.address = wx.StaticText(self, wx.ID_ANY, address)
 
         cancel_btn = wx.Button(self, wx.ID_CANCEL, "Cancel")
         self.ok_btn = wx.Button(self, wx.ID_OK, "OK")
@@ -103,6 +106,8 @@ class EditAliasDialog(wx.Dialog):
         
         sizer.AddF(self.alias_label, flags=flags)
         sizer.AddF(self.alias, flags=flags)
+        sizer.AddF(self.address_label, flags=flags)
+        sizer.AddF(self.address, flags=flags)
         sizer.AddF(cancel_btn, flags=flags)
         sizer.AddF(self.ok_btn, flags=flags)       
         
@@ -216,7 +221,6 @@ class ConnectionWindow(wx.Panel):
         event.Skip()
 
     def on_click_label(self, event):
-        print "clicked label"
         Publisher().sendMessage(("edit_alias"), self)
 
     def on_accept(self, event):
@@ -227,7 +231,6 @@ class ConnectionWindow(wx.Panel):
 
     def on_disconnect(self, event):
         Publisher().sendMessage(("disconnect"), self)
-        print "TODO: implement disconect"
 
     def on_cancel(self, event):
         Publisher().sendMessage(("cancel"), self)
@@ -459,8 +462,9 @@ class ConnectionsPanel(wx.Panel):
     def edit_alias(self, msg):
         conn = msg.data.connection
         current_alias = conn.alias
+        address = conn.address
 
-        edit_box = EditAliasDialog(self, current_alias)
+        edit_box = EditAliasDialog(self, current_alias, address)
         edit_box.SetBackgroundColour(self.bgd_color)
 
         if edit_box.ShowModal() == wx.ID_OK:
