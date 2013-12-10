@@ -23,33 +23,38 @@ import unittest
 
 from network import Network
 
-WAIT_TIME = 0.5
+WAIT_TIME = 0.1
 
 class TestSimple(unittest.TestCase):
     def setUp(self):
-        print 'setup'
         self.port1 = random.randint(20000, 30000)
         self.port2 = random.randint(20000, 30000)
         self.n1 = Network(self.port1)
         self.n2 = Network(self.port2)
         self.n1.start()
         self.n2.start()
+
         # give everything time to get going
         time.sleep(WAIT_TIME)
 
-    def test_connect(self):
-        print 'connecting...'
+    def test_simple(self):
         self.n2.connect('localhost', self.port1)
         time.sleep(WAIT_TIME)
-        print 'sending 1...'
-        self.n2.set_clipboard('testing 1')
-        print 'sending 2...'
-        self.n1.set_clipboard('testing 2')
-        # give it enough time to execute before tearing down
-        print 'sleeping...'
+
+        m1 = 'test 1'
+        self.n2.set_clipboard(m1)
         time.sleep(WAIT_TIME)
-        print 'done sleeping...'
+
+        self.assertTrue(self.n1.get_clipboard() == m1)
+
+        m2 = 'test 2'
+        self.n1.set_clipboard(m2)
+        time.sleep(WAIT_TIME)
+
+        self.assertTrue(self.n2.get_clipboard() == m2)
 
     def tearDown(self):
+        # give it enough time to execute before tearing down
+        time.sleep(WAIT_TIME)
         self.n1.stop()
         self.n2.stop()

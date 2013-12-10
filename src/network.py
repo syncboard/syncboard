@@ -20,8 +20,9 @@
 from select import select
 from socket import socket, AF_INET, SOCK_STREAM, timeout, error
 from threading import Thread, Lock
+import random
 
-TIMEOUT = 0.2
+TIMEOUT = 0.05
 RECV_SIZE = 4096
 
 DEFAULT_PORT = 24749
@@ -48,6 +49,9 @@ class Network:
     """
 
     def __init__(self, port = DEFAULT_PORT):
+        # UID used mostly for conflict resolution
+        self.uid = random.randint(0, 0xFFFFFFFF)
+
         self.port = port
 
         self._connections = set()
@@ -60,14 +64,26 @@ class Network:
 
         self.running = False
 
+        self._clipboard = ''
+
     def start(self):
         self.running = True
         self._comm_thread.start()
         self._server_thread.start()
 
     def set_clipboard(self, data):
+        """Threadsafe -- can be called from any thread"""
+        # no locking required since this is an atomic operation. We will need
+        # locking once we use the sequence number for messages, though.
+        self._clipboard = data
+        m = Message(self._clipboard)
         for c in self._connections:
-            c.send(data)
+            c.send(m)
+
+    def get_clipboard(self):
+        """Threadsafe -- can be called from any thread"""
+        # no locking required since this is an atomic operation
+        return self._clipboard
 
     def connect(self, address, port = DEFAULT_PORT):
         s = socket(AF_INET, SOCK_STREAM)
@@ -81,6 +97,10 @@ class Network:
         self._server_thread.join()
         self._comm_thread.join()
 
+    def _process_message(self, message):
+        """Called when we receive a message over the wire"""
+        self._clipboard = message.get_payload()
+
     def _comm_loop(self):
         while self.running:
             # wait until a socket is ready to read
@@ -91,7 +111,7 @@ class Network:
                 if not conn.receive():
                     self._tear_down_connection(conn)
                     continue
-                print 'received data: ' + conn.get_next_message()
+                self._process_message(conn.get_next_message())
 
         while self._connections:
             # kinda gross, but we can't iterate over the elements since we
@@ -129,7 +149,11 @@ class Network:
 # TODO add locking if receives and get_next_messages are done in multiple
 # threads
 class Connection:
-    """Manages a socket and other data specific to a connection"""
+    """Manages a socket and other data specific to a connection.
+
+    Holds any data received that does not yet form a complete message.
+
+    """
 
     def __init__(self, sock):
         self._socket = sock
@@ -156,15 +180,61 @@ class Connection:
         return len(new_data) > 0
 
     def get_next_message(self):
-        data = self._raw_data
-        self._raw_data = ''
-        return data
+        """Return the next available message, if there is one, or None, if none
+        is available"""
+        message, self._raw_data = Message.parse_message(self._raw_data)
+        return message
 
     def fileno(self):
         return self._socket.fileno()
 
     def send(self, message):
-        self._socket.sendall(message)
+        self._socket.sendall(message.raw())
 
     def close(self):
         self._socket.close()
+
+# TODO fill out the rest of the implementation of this class -- implement the
+# more complicated protocol, and then modify the Network class accordingly
+class Message:
+    """A record type representing a message to be passed over the wire"""
+
+    @staticmethod
+    def parse_message(raw_message):
+        """Return a Message object representing the data contained in the
+        argument, plus any left data left over at the end.
+
+        Return (None, raw_message) if the argument does not represent a valid Message
+        """
+        m = Message()
+        m.set_payload(raw_message)
+        return (m, '')
+
+    def __init__(self, payload=''):
+        self._payload = payload
+
+    def raw(self):
+        """Return a representation of this Message suitable for sending over the
+        wire"""
+        return self._payload
+
+    def set_payload(self, payload):
+        self._payload = payload
+
+    def get_payload(self):
+        return self._payload
+
+    def set_uid(self, uid):
+        self._uid
+
+    def get_uid(self):
+        return self._uid
+
+    def set_sequence_number(self, n):
+        self._seq = n;
+
+    def get_sequence_number(self):
+        return self._seq
+
+    def __str__(self):
+        return self._payload
