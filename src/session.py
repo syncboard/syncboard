@@ -43,8 +43,15 @@ class Session:
 
         # TODO add command line switch to change port, which would be passed in
         # here
-        self._network = Network()
+        self._network = Network(callback=self._new_connection_request)
         self._network.start()
+
+    def _new_connection_request(self, address):
+        conn = self._con_mgr.get_connection(address)
+        if conn:
+            conn.status = Connection.REQUEST
+        else:
+            self._con_mgr.new_connection("", address, Connection.REQUEST)
 
     def get_clipboard_data(self):
         self._clipboard_data = self._network.get_clipboard()

@@ -48,7 +48,7 @@ class Network:
     receive data.
     """
 
-    def __init__(self, port = DEFAULT_PORT):
+    def __init__(self, port = DEFAULT_PORT, callback = None):
         # UID used mostly for conflict resolution
         self.uid = random.randint(0, 0xFFFFFFFF)
 
@@ -65,6 +65,8 @@ class Network:
         self.running = False
 
         self._clipboard = ''
+
+        self.callback = callback
 
     def start(self):
         self.running = True
@@ -134,6 +136,8 @@ class Network:
         while self.running:
             try:
                 client_socket, address = server_socket.accept()
+                if self.callback:
+                    self.callback(address[0])
             except timeout:
                 pass
             else:

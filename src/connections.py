@@ -30,11 +30,13 @@ class ConnectionManager:
                 return con
         return None
 
-    def new_connection(self, alias, address):
+    def new_connection(self, alias, address, status=None):
+        if not status:
+            status = Connection.PENDING
         if self.get_connection(address):
             print "Error: connection to %s already exists" % address
         else:
-            self.connections.append(Connection(alias, address, Connection.PENDING))
+            self.connections.append(Connection(alias, address, status))
 
     def del_connection(self, address):
         c = self.get_connection(address)
