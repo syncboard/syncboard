@@ -1,5 +1,5 @@
 """
-    Cross-platform clipboard sycning tool
+    Cross-platform clipboard syncing tool
     Copyright (C) 2013  Syncboard
 
     This program is free software; you can redistribute it and/or modify
