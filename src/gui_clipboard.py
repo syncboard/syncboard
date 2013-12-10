@@ -50,7 +50,7 @@ class ClipboardPanel(wx.Panel):
         self.check_timer = wx.Timer(self, wx.ID_ANY)
         self.Bind(wx.EVT_TIMER, self.check_clipboard, self.check_timer)
         self.check_timer.Start(100)
-        self.parent.timers.add(self.check_timer)
+        Publisher().sendMessage(("new_timer"), self.check_timer)
         self.has_valid_data = False
 
         self.Bind(wx.EVT_TEXT, self.on_edit)

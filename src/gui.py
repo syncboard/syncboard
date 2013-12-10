@@ -45,6 +45,7 @@ class MainFrame(wx.Frame):
         # List of timers so we can stop them when we quit.
         # Avoids PyDeadObjectError.
         self.timers = set()
+        Publisher().subscribe(self.new_timer, "new_timer")
 
         # Build the menu bar
         menu_bar = wx.MenuBar()
@@ -101,6 +102,9 @@ class MainFrame(wx.Frame):
         main_sizer.AddF(connections_panel, conn_flags)
 
         self.SetSizer(main_sizer)
+
+    def new_timer(self, msg):
+        self.timers.add(msg.data)
 
     def change_statusbar(self, msg):
         self.SetStatusText(msg.data)
