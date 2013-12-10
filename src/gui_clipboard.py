@@ -216,7 +216,7 @@ class ClipboardPanel(wx.Panel):
                         if self.local_prev == local: # External update
                             self.on_copy()
                         else: # This user updated
-                            self.local_prev = lcal
+                            self.local_prev = local
                             self.on_paste()
                     # Local doesn't contain text but shared does so update local
                     elif not contains_text:
