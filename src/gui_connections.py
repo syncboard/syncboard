@@ -181,10 +181,12 @@ class ConnectionWindow(wx.Panel):
         self.state_timer = wx.Timer(self, wx.ID_ANY)
         self.Bind(wx.EVT_TIMER, self.on_update_state, self.state_timer)
         self.state_timer.Start(100)
+        self.parent.timers.add(self.state_timer)
 
         self.color_timer = wx.Timer(self, wx.ID_ANY)
         self.Bind(wx.EVT_TIMER, self.on_update_color, self.color_timer)
         self.color_timer.Start(400)
+        self.parent.timers.add(self.color_timer)
 
         self.initSize = self.GetMinSize()
 
@@ -374,10 +376,12 @@ class ConnectionsPanel(wx.Panel):
         self.sync_timer = wx.Timer(self, wx.ID_ANY)
         self.Bind(wx.EVT_TIMER, self.on_sync, self.sync_timer)
         self.sync_timer.Start(200)
+        self.parent.timers.add(self.sync_timer)
 
         self.sort_timer = wx.Timer(self, wx.ID_ANY)
         self.Bind(wx.EVT_TIMER, self.on_sort, self.sort_timer)
         self.sort_timer.Start(500)
+        self.parent.timers.add(self.sort_timer)
 
         self.rows = set()
         self.known_connections = set()

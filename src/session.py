@@ -89,7 +89,7 @@ class Session:
             Connection on this end status: PENDING
             Conneciton on other end status: REQUEST
         """
-        self.network.connect(address)
+        self._network.connect(address)
         self._con_mgr.new_connection(alias, address)
 
     def accept_connection(self, address):

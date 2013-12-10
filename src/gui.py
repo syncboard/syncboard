@@ -42,6 +42,10 @@ class MainFrame(wx.Frame):
 
         self.SetBackgroundColour(BGD_COLOR)
 
+        # List of timers so we can stop them when we quit.
+        # Avoids PyDeadObjectError.
+        self.timers = set()
+
         # Build the menu bar
         menu_bar = wx.MenuBar()
 
@@ -122,6 +126,8 @@ class MainFrame(wx.Frame):
         aboutbox.Destroy()
 
     def on_quit(self, event):
+        for timer in self.timers():
+            timer.Stop()
         self.Close()
 
 if __name__ == '__main__':
