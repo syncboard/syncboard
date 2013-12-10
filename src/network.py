@@ -86,6 +86,7 @@ class Network:
         return self._clipboard
 
     def connect(self, address, port = DEFAULT_PORT):
+        # TODO sync clipboard data when connection is established
         s = socket(AF_INET, SOCK_STREAM)
         s.connect((address, port))
         self._setup_connection(s)

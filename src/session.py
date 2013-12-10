@@ -24,6 +24,7 @@
 """
 
 from connections import ConnectionManager, Connection
+from network import Network
 
 class Session:
     def __init__(self):
@@ -40,7 +41,13 @@ class Session:
         # Connection object.
         self._data_owner = None
 
+        # TODO add command line switch to change port, which would be passed in
+        # here
+        self._network = Network()
+        self._network.start()
+
     def get_clipboard_data(self):
+        self._clipboard_data = self._network.get_clipboard()
         return self._clipboard_data
 
     def get_clipboard_data_type(self):
@@ -54,6 +61,7 @@ class Session:
             This is called (by the gui) when the user pastes to the app.
         """
         self._clipboard_data = data
+        self._network.set_clipboard(self._clipboard_data)
         self._data_type = data_type
         self._data_owner = None
 
@@ -75,12 +83,13 @@ class Session:
             a Syncboard app running at that address then that user will
             see a new connection appear (with the address on this end) with
             status REQUEST.
-            
+
             After this has executed:
             New Connection on both ends.
             Connection on this end status: PENDING
             Conneciton on other end status: REQUEST
         """
+        self.network.connect(address)
         self._con_mgr.new_connection(alias, address)
 
     def accept_connection(self, address):
