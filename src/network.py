@@ -21,6 +21,7 @@ from select import select
 from socket import socket, AF_INET, SOCK_STREAM, timeout, error
 from threading import Thread, Lock
 import random
+import time
 
 TIMEOUT = 0.05
 RECV_SIZE = 4096
@@ -107,14 +108,17 @@ class Network:
     def _comm_loop(self):
         while self.running:
             # wait until a socket is ready to read
-            readlist, _, _ = select(self._connections, [], [], TIMEOUT)
-            if readlist:
-                conn = readlist[0]
+            if self._connections:
+                readlist, _, _ = select(self._connections, [], [], TIMEOUT)
+                if readlist:
+                    conn = readlist[0]
 
-                if not conn.receive():
-                    self._tear_down_connection(conn)
-                    continue
-                self._process_message(conn.get_next_message())
+                    if not conn.receive():
+                        self._tear_down_connection(conn)
+                        continue
+                    self._process_message(conn.get_next_message())
+            else:
+                time.sleep(TIMEOUT)
 
         while self._connections:
             # kinda gross, but we can't iterate over the elements since we
