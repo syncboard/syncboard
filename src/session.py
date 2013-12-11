@@ -49,9 +49,11 @@ class Session:
     def _new_connection_request(self, address):
         conn = self._con_mgr.get_connection(address)
         if conn:
-            conn.status = Connection.REQUEST
+            #conn.status = Connection.REQUEST
+            conn.status = Connection.CONNECTED
         else:
-            self._con_mgr.new_connection("", address, Connection.REQUEST)
+            #self._con_mgr.new_connection("", address, Connection.REQUEST)
+            self._con_mgr.new_connection("", address, Connection.CONNECTED)
 
     def get_clipboard_data(self):
         self._clipboard_data = self._network.get_clipboard()
@@ -137,7 +139,8 @@ class Session:
         conn = self.get_connection(address)
         if conn:
             print "Request to connect to %s sent" % address
-            conn.status = Connection.PENDING
+            #conn.status = Connection.PENDING
+            conn.status = Connection.CONNECTED
         else:
             print "Error: no connection to %s exists" % address
 
