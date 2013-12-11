@@ -43,7 +43,8 @@ class Session:
 
         # TODO add command line switch to change port, which would be passed in
         # here
-        self._network = Network(callback=self._new_connection_request)
+        self._network = Network(con_callback=self._new_connection_request,
+                                dis_callback=self._disconnect_request)
         self._network.start()
 
     def _new_connection_request(self, address):
@@ -54,6 +55,11 @@ class Session:
         else:
             #self._con_mgr.new_connection("", address, Connection.REQUEST)
             self._con_mgr.new_connection("", address, Connection.CONNECTED)
+
+    def _disconnect_request(self, address):
+        conn = self._con_mgr.get_connection(address)
+        if conn:
+            conn.status = Connection.NOT_CONNECTED
 
     def get_clipboard_data(self):
         self._clipboard_data = self._network.get_clipboard()
@@ -136,6 +142,7 @@ class Session:
             Connection on this end status: PENDING
             Conneciton on other end status: REQUEST
         """
+        self._network.connect(address)
         conn = self.get_connection(address)
         if conn:
             print "Request to connect to %s sent" % address
@@ -157,6 +164,7 @@ class Session:
             Connection on this end status: NOT_CONNECTED
             Conneciton on other end status: NOT_CONNECTED
         """
+        self._network.disconnect(address)
         conn = self.get_connection(address)
         if conn:
             print "Disconnected from %s" % address
@@ -190,7 +198,13 @@ class Session:
             Removes the Connection with the given address from the list of
             connections.
         """
-        self._con_mgr.del_connection(address)
+        conn = self.get_connection(address)
+        if conn:
+            if conn.status == Connection.CONNECTED:
+                self.disconnect(address)
+            self._con_mgr.del_connection(address)
+        else:
+            print "Error: no connection to %s exists" % address
 
     def update_alias(self, address, new_alias):
         """

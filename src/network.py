@@ -49,7 +49,8 @@ class Network:
     receive data.
     """
 
-    def __init__(self, port = DEFAULT_PORT, callback = None):
+    def __init__(self, port = DEFAULT_PORT,
+                 con_callback = None, dis_callback = None):
         # UID used mostly for conflict resolution
         self.uid = random.randint(0, 0xFFFFFFFF)
 
@@ -67,7 +68,8 @@ class Network:
 
         self._clipboard = ''
 
-        self.callback = callback
+        self.on_connect_callback = con_callback
+        self.on_disconnect_callback = dis_callback
 
     def start(self):
         self.running = True
@@ -97,6 +99,15 @@ class Network:
         s = socket(AF_INET, SOCK_STREAM)
         s.connect((address, port))
         self._setup_connection(s)
+
+    def disconnect(self, address, port = DEFAULT_PORT):
+        conn = None
+        for c in self._connections:
+            if c.get_peer_name()[0] == address:
+                conn = c
+                break
+        if conn:
+             self._tear_down_connection(conn)
 
     def stop(self):
         self.running = False
@@ -144,8 +155,8 @@ class Network:
         while self.running:
             try:
                 client_socket, address = server_socket.accept()
-                if self.callback:
-                    self.callback(address[0])
+                if self.on_connect_callback:
+                    self.on_connect_callback(address[0])
             except timeout:
                 pass
             else:
@@ -156,6 +167,8 @@ class Network:
         self._connections.add(Connection(conn))
 
     def _tear_down_connection(self, conn):
+        if self.on_disconnect_callback:
+            self.on_disconnect_callback(conn.get_peer_name()[0])
         conn.close()
         self._connections.remove(conn)
 
@@ -173,6 +186,9 @@ class Connection:
         # use nonblocking i/o
         self._socket.setblocking(0)
         self._raw_data = ''
+
+    def get_peer_name(self):
+        return self._socket.getpeername()
 
     def receive(self):
         """Perform a nonblocking receive on the underlying socket.
