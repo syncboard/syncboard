@@ -88,6 +88,10 @@ class Network:
         # no locking required since this is an atomic operation
         return self._clipboard
 
+    def get_clipboard_data_type(self):
+        import info
+        return info.TXT
+
     def connect(self, address, port = DEFAULT_PORT):
         # TODO sync clipboard data when connection is established
         s = socket(AF_INET, SOCK_STREAM)

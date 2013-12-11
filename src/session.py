@@ -58,6 +58,7 @@ class Session:
         return self._clipboard_data
 
     def get_clipboard_data_type(self):
+        self._data_type = self._network.get_clipboard_data_type()
         return self._data_type
 
     def get_clipboard_data_owner(self):

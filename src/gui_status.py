@@ -107,7 +107,6 @@ class StatusPanel(wx.Panel):
         self.shared_type.SetLabel(data_type)
         if not self.user_pasted and data_type != "Empty":
             self.new.Show()
-            print 'show'
 
         self.user_pasted = False
 

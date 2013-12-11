@@ -207,6 +207,7 @@ class ClipboardPanel(wx.Panel):
             if shared != self.shared_prev:
                 self.shared_prev = shared
                 if shared_type == None: shared_type = "Empty"
+                print "new data from %s" % self.session.get_clipboard_data_owner()
                 Publisher().sendMessage(("update_shared_clipboard"), shared_type)
 
             if self.auto_sync:
