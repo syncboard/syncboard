@@ -68,17 +68,12 @@ class Network:
 
         self.port = port
 
-        # should only be accessed from the connection thread
-        self._connections = set()
-
-        self._connection_thread = Thread(target=self._connection_loop)
-        # if the main thread shuts down, don't wait for the connection thread
-        self._connection_thread.daemon = True
+        self._connection_thread = ConnectionThread(self._process_message, self._run_disconnect_callback)
 
         self._server_thread = Thread(target=self._accept_loop)
         self._server_thread.daemon = True
 
-        self.running = False
+        self._running = False
 
         self._clipboard = ''
 
@@ -90,11 +85,11 @@ class Network:
         # a queue of Message objects to be sent
         self._send_queue = Queue()
 
-        self.on_connect_callback = con_callback
-        self.on_disconnect_callback = dis_callback
+        self._on_connect_callback = con_callback
+        self._on_disconnect_callback = dis_callback
 
     def start(self):
-        self.running = True
+        self._running = True
         self._connection_thread.start()
         self._server_thread.start()
 
@@ -104,7 +99,7 @@ class Network:
         # locking once we use the sequence number for messages, though.
         self._clipboard = data
         m = Message(self._clipboard)
-        self._send_queue.put(m)
+        self._connection_thread.send(m)
 
     def get_clipboard(self):
         """Threadsafe -- can be called from any thread"""
@@ -119,7 +114,7 @@ class Network:
         # TODO sync clipboard data when connection is established
         s = socket(AF_INET, SOCK_STREAM)
         s.connect((address, port))
-        self._schedule_connect(s)
+        self._connection_thread.add_connection(Connection(s))
 
     # TODO fix race condition introduced by disconnect
     def disconnect(self, address, port = DEFAULT_PORT):
@@ -128,30 +123,91 @@ class Network:
         Disconnect from the given peer, if we are currently connected.
         Otherwise, do nothing.
 
-        Return True if a disconnection took place, False otherwise.
-
         """
-        self._schedule_disconnect(address, port);
+        self._connection_thread.schedule_disconnect(address, port)
 
     def stop(self):
-        self.running = False
+        self._running = False
 
         # wait for the threads to cleanly exit
         self._server_thread.join()
-        self._connection_thread.join()
+        self._connection_thread.stop()
+
+    def _run_disconnect_callback(self, *args):
+        if self._on_disconnect_callback:
+          self._on_disconnect_callback(*args)
 
     def _process_message(self, message):
         """Called when we receive a message over the wire"""
         self._clipboard = message.get_payload()
 
-    def _connection_loop(self):
-        """Manages all aspects of the connections -- receives and sends
-        messages, and execute connects and disconnects
+    def _accept_loop(self):
+        server_socket = socket(AF_INET, SOCK_STREAM)
 
-        To be executed in the connection thread
+        # bind to all network interfaces
+        server_socket.bind(('', self.port))
+        # allow the OS to enqueue 5 waiting connections
+        server_socket.listen(5)
+        # timeout so we can check if we should shut down
+        server_socket.settimeout(TIMEOUT)
 
-        """
-        while self.running:
+        while self._running:
+            try:
+                client_socket, address = server_socket.accept()
+                if self._on_connect_callback:
+                    self._on_connect_callback(address[0])
+            except timeout:
+                pass
+            else:
+                self._connection_thread.add_connection(Connection(client_socket))
+        server_socket.close()
+
+class ConnectionThread:
+    """Manages the connection thread, and accepts messages from any thread on
+    its behalf.
+
+    All the publicly accessible methods may be called from any thread.
+
+    There should probably be only one instance of this object.
+
+    """
+
+    def __init__(self, msg_recv_callback, disconnect_callback):
+        self._msg_recv_callback = msg_recv_callback
+        self._disconnect_callback = disconnect_callback
+
+        self._thread = Thread(target=self._loop)
+        self._thread.daemon = True
+
+        self._message_queue = Queue()
+        self._connection_queue = Queue()
+        self._disconnect_queue = Queue()
+
+        self._running = False
+
+        self._connections = set()
+
+    def start(self):
+        self._running = True
+        self._thread.start()
+
+    def stop(self):
+        self._running = False
+        self._thread.join()
+
+    def add_connection(self, connection):
+        """Takes a Connection object"""
+        self._connection_queue.put(connection)
+
+    def schedule_disconnect(self, address, port):
+        self._disconnect_queue.put((address, port))
+
+    def send(self, message):
+        """Sends the given message to all peers"""
+        self._message_queue.put(message)
+
+    def _loop(self):
+        while self._running:
             self._process_sends()
             self._process_receive()
             self._process_new_conns()
@@ -168,7 +224,7 @@ class Network:
         try:
             while True:
                 # raises Empty when it's empty
-                message = self._send_queue.get_nowait()
+                message = self._message_queue.get_nowait()
                 for c in self._connections:
                     c.send(message)
         except Empty:
@@ -178,7 +234,7 @@ class Network:
         try:
             while True:
                 # raises Empty when it's empty
-                c = self._connect_queue.get_nowait()
+                c = self._connection_queue.get_nowait()
                 self._connections.add(c)
         except Empty:
             pass
@@ -214,40 +270,13 @@ class Network:
                 conn = readlist[0]
 
                 if conn.receive():
-                    self._process_message(conn.get_next_message())
+                    self._msg_recv_callback(conn.get_next_message())
                 else:
-                    if self.on_disconnect_callback:
-                        self.on_disconnect_callback(conn.get_peer_name()[0])
+                    if self._disconnect_callback:
+                        self._disconnect_callback(conn.get_peer_name()[0])
                     self._tear_down_connection(conn)
         else:
             time.sleep(TIMEOUT)
-
-    def _accept_loop(self):
-        server_socket = socket(AF_INET, SOCK_STREAM)
-
-        # bind to all network interfaces
-        server_socket.bind(('', self.port))
-        # allow the OS to enqueue 5 waiting connections
-        server_socket.listen(5)
-        # timeout so we can check if we should shut down
-        server_socket.settimeout(TIMEOUT)
-
-        while self.running:
-            try:
-                client_socket, address = server_socket.accept()
-                if self.on_connect_callback:
-                    self.on_connect_callback(address[0])
-            except timeout:
-                pass
-            else:
-                self._schedule_connect(client_socket)
-        server_socket.close()
-
-    def _schedule_connect(self, sock):
-        self._connect_queue.put(Connection(sock))
-
-    def _schedule_disconnect(self, address, port):
-        self._disconnect_queue.put((address, port))
 
     def _tear_down_connection(self, conn):
         conn.close()
