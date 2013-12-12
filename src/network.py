@@ -64,9 +64,9 @@ class Network:
 
         """
         # UID used mostly for conflict resolution
-        self.uid = random.randint(0, 0xFFFFFFFF)
+        self._uid = random.randint(0, 0xFFFFFFFF)
 
-        self.port = port
+        self._port = port
 
         self._connection_thread = ConnectionThread(self._process_message, self._run_disconnect_callback)
 
@@ -98,7 +98,7 @@ class Network:
         # no locking required since this is an atomic operation. We will need
         # locking once we use the sequence number for messages, though.
         self._clipboard = data
-        m = Message(self._clipboard)
+        m = Message(self._uid, self._clipboard)
         self._connection_thread.send(m)
 
     def get_clipboard(self):
@@ -149,7 +149,7 @@ class Network:
         server_socket = socket(AF_INET, SOCK_STREAM)
 
         # bind to all network interfaces
-        server_socket.bind(('', self.port))
+        server_socket.bind(('', self._port))
         # allow the OS to enqueue 5 waiting connections
         server_socket.listen(5)
         # timeout so we can check if we should shut down
@@ -352,7 +352,8 @@ class Connection:
 # TODO fill out the rest of the implementation of this class -- implement the
 # more complicated protocol, and then modify the Network class accordingly
 class Message:
-    """A record type representing a message to be passed over the wire"""
+    """A record type representing a message to be passed over the wire
+    """
 
     @staticmethod
     def parse_message(raw_message):
@@ -361,16 +362,21 @@ class Message:
 
         Return (None, raw_message) if the argument does not represent a valid Message
         """
-        m = Message()
+        # TODO use a not stub value
+        m = Message(0)
         m.set_payload(raw_message)
         return (m, '')
 
-    def __init__(self, payload=''):
+    def __init__(self, uid = None, payload=''):
+        self._uid = uid
         self._payload = payload
 
     def raw(self):
         """Return a representation of this Message suitable for sending over the
         wire"""
+        if not self._uid:
+            raise RuntimeError('no uid set')
+
         return self._payload
 
     def set_payload(self, payload):
