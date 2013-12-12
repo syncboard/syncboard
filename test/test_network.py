@@ -83,6 +83,16 @@ class TestSimple(unittest.TestCase):
 
         self.assertNotEqual(self.n1.get_clipboard(), m)
 
+    def test_reconnect(self):
+        self.n2.disconnect('localhost')
+        time.sleep(WAIT_TIME)
+        self.n1.connect('localhost', self.port2)
+        time.sleep(WAIT_TIME)
+
+        self.n1.set_clipboard('asdf 5')
+        time.sleep(WAIT_TIME)
+        self.assertEqual(self.n2.get_clipboard(), 'asdf 5')
+
     def tearDown(self):
         # give it enough time to execute before tearing down
         time.sleep(WAIT_TIME)
