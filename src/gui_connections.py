@@ -45,14 +45,13 @@ class NewConnectionDialog(wx.Dialog):
         self.address.SetMinSize((width, height))
         self.Bind(wx.EVT_TEXT, self.on_edit_address, self.address)
 
-
         self.alias.SetMaxLength(MAX_ALIAS_LENGTH)
         self.alias.SetMinSize((width, height))
-
         
         cancel_btn = wx.Button(self, wx.ID_CANCEL, "Cancel")
         self.ok_btn = wx.Button(self, wx.ID_OK, "OK")
         self.ok_btn.Disable()
+        self.ok_btn.SetDefault()
 
         flags = wx.SizerFlags().Border(wx.ALL, 5)
         
@@ -99,6 +98,7 @@ class EditAliasDialog(wx.Dialog):
 
         cancel_btn = wx.Button(self, wx.ID_CANCEL, "Cancel")
         self.ok_btn = wx.Button(self, wx.ID_OK, "OK")
+        self.ok_btn.SetDefault()
 
         flags = wx.SizerFlags().Border(wx.ALL, 5)
         
