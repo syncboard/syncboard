@@ -132,6 +132,7 @@ class MainFrame(wx.Frame):
     def on_quit(self, event):
         for timer in self.timers():
             timer.Stop()
+        self.session.close()
         self.Close()
 
 if __name__ == '__main__':

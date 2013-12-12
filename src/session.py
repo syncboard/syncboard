@@ -217,3 +217,6 @@ class Session:
             conn.alias = new_alias
         else:
             print "Error: no connection to %s exists" % address
+
+    def close(self):
+        self._network.stop()
