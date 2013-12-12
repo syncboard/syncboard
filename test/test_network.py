@@ -37,21 +37,37 @@ class TestSimple(unittest.TestCase):
         # give everything time to get going
         time.sleep(WAIT_TIME)
 
-    def test_simple(self):
+        # establish connection
         self.n2.connect('localhost', self.port1)
         time.sleep(WAIT_TIME)
 
+    # test simple clipboard syncing
+    def test_simple(self):
         m1 = 'test 1'
         self.n2.set_clipboard(m1)
         time.sleep(WAIT_TIME)
 
-        self.assertTrue(self.n1.get_clipboard() == m1)
+        self.assertEqual(self.n1.get_clipboard(), m1)
 
         m2 = 'test 2'
         self.n1.set_clipboard(m2)
         time.sleep(WAIT_TIME)
 
-        self.assertTrue(self.n2.get_clipboard() == m2)
+        self.assertEqual(self.n2.get_clipboard(), m2)
+
+    def test_disconnect_client(self):
+        self.n2.set_clipboard('test')
+        time.sleep(WAIT_TIME)
+
+        disconnected = self.n2.disconnect('localhost', self.port1)
+        self.assertTrue(disconnected)
+        time.sleep(WAIT_TIME)
+
+        m = "test %d" % random.randint(0, 1000)
+        self.n2.set_clipboard(m)
+        time.sleep(WAIT_TIME)
+
+        self.assertNotEqual(self.n1.get_clipboard(), m)
 
     def tearDown(self):
         # give it enough time to execute before tearing down
