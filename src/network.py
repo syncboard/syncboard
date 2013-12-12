@@ -246,6 +246,8 @@ class ConnectionThread:
                 address, port = self._disconnect_queue.get_nowait()
                 # get canonical name
                 host = gethostbyname(address)
+
+                conn = None
                 for c in self._connections:
                     if c.get_peer_name() == (host, port):
                         conn = c
