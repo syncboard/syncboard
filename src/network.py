@@ -289,7 +289,7 @@ class ConnectionThread:
                     self._msg_recv_callback(conn.get_next_message())
                 else:
                     if self._disconnect_callback:
-                        self._disconnect_callback(conn.get_peer_name()[0])
+                        self._disconnect_callback(*conn.get_peer_name())
                     self._tear_down_connection(conn)
         else:
             time.sleep(TIMEOUT)

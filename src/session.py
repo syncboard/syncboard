@@ -56,7 +56,7 @@ class Session:
             #self._con_mgr.new_connection("", address, Connection.REQUEST)
             self._con_mgr.new_connection("", address, Connection.CONNECTED)
 
-    def _disconnect_request(self, address):
+    def _disconnect_request(self, address, port):
         conn = self._con_mgr.get_connection(address)
         if conn:
             conn.status = Connection.NOT_CONNECTED
