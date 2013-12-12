@@ -22,6 +22,7 @@ from socket import socket, AF_INET, SOCK_STREAM, timeout, error, gethostbyname
 from threading import Thread, Lock
 import random
 import time
+from Queue import Queue, Empty
 
 TIMEOUT = 0.05
 RECV_SIZE = 4096
@@ -67,10 +68,12 @@ class Network:
 
         self.port = port
 
+        # should only be accessed from the connection thread
         self._connections = set()
-        self._comm_thread = Thread(target=self._comm_loop)
-        # if the main thread shuts down, don't wait for the comm thread
-        self._comm_thread.daemon = True
+
+        self._connection_thread = Thread(target=self._connection_loop)
+        # if the main thread shuts down, don't wait for the connection thread
+        self._connection_thread.daemon = True
 
         self._server_thread = Thread(target=self._accept_loop)
         self._server_thread.daemon = True
@@ -79,12 +82,20 @@ class Network:
 
         self._clipboard = ''
 
+        # a queue of connections that need to be made. Contains Connection
+        # objects that must be added to the _connections set.
+        self._connect_queue = Queue()
+        # a queue of (address, port) pairs to be disconnected from
+        self._disconnect_queue = Queue()
+        # a queue of Message objects to be sent
+        self._send_queue = Queue()
+
         self.on_connect_callback = con_callback
         self.on_disconnect_callback = dis_callback
 
     def start(self):
         self.running = True
-        self._comm_thread.start()
+        self._connection_thread.start()
         self._server_thread.start()
 
     def set_clipboard(self, data):
@@ -93,8 +104,7 @@ class Network:
         # locking once we use the sequence number for messages, though.
         self._clipboard = data
         m = Message(self._clipboard)
-        for c in self._connections:
-            c.send(m)
+        self._send_queue.put(m)
 
     def get_clipboard(self):
         """Threadsafe -- can be called from any thread"""
@@ -109,7 +119,7 @@ class Network:
         # TODO sync clipboard data when connection is established
         s = socket(AF_INET, SOCK_STREAM)
         s.connect((address, port))
-        self._setup_connection(s)
+        self._schedule_connect(s)
 
     # TODO fix race condition introduced by disconnect
     def disconnect(self, address, port = DEFAULT_PORT):
@@ -121,47 +131,31 @@ class Network:
         Return True if a disconnection took place, False otherwise.
 
         """
-
-        # get canonical name
-        host = gethostbyname(address)
-        conn = None
-        for c in self._connections:
-            if c.get_peer_name() == (host, port):
-                conn = c
-                break
-        if conn:
-            self._tear_down_connection(conn)
-            return True
-        else:
-            return False
+        self._schedule_disconnect(address, port);
 
     def stop(self):
         self.running = False
 
         # wait for the threads to cleanly exit
         self._server_thread.join()
-        self._comm_thread.join()
+        self._connection_thread.join()
 
     def _process_message(self, message):
         """Called when we receive a message over the wire"""
         self._clipboard = message.get_payload()
 
-    def _comm_loop(self):
-        while self.running:
-            # wait until a socket is ready to read
-            if self._connections:
-                readlist, _, _ = select(self._connections, [], [], TIMEOUT)
-                if readlist:
-                    conn = readlist[0]
+    def _connection_loop(self):
+        """Manages all aspects of the connections -- receives and sends
+        messages, and execute connects and disconnects
 
-                    if conn.receive():
-                        self._process_message(conn.get_next_message())
-                    else:
-                        if self.on_disconnect_callback:
-                            self.on_disconnect_callback(conn.get_peer_name()[0])
-                        self._tear_down_connection(conn)
-            else:
-                time.sleep(TIMEOUT)
+        To be executed in the connection thread
+
+        """
+        while self.running:
+            self._process_sends()
+            self._process_receive()
+            self._process_new_conns()
+            self._process_disconnects()
 
         while self._connections:
             # kinda gross, but we can't iterate over the elements since we
@@ -169,6 +163,64 @@ class Network:
             # the tear down method
             conn = iter(self._connections).next()
             self._tear_down_connection(conn)
+
+    def _process_sends(self):
+        try:
+            while True:
+                # raises Empty when it's empty
+                message = self._send_queue.get_nowait()
+                for c in self._connections:
+                    c.send(message)
+        except Empty:
+            pass
+
+    def _process_new_conns(self):
+        try:
+            while True:
+                # raises Empty when it's empty
+                c = self._connect_queue.get_nowait()
+                self._connections.add(c)
+        except Empty:
+            pass
+
+    def _process_disconnects(self):
+        try:
+            while True:
+                # raises Empty when it's empty
+                address, port = self._disconnect_queue.get_nowait()
+                # get canonical name
+                host = gethostbyname(address)
+                for c in self._connections:
+                    if c.get_peer_name() == (host, port):
+                        conn = c
+                        break
+                if conn:
+                    self._tear_down_connection(conn)
+        except Empty:
+            pass
+
+    def _process_receive(self):
+        """Helper method for the connection loop.
+
+        Either processes the receipt of data from a single connection, or blocks
+        for TIMEOUT
+        seconds
+
+        """
+        # wait until a socket is ready to read
+        if self._connections:
+            readlist, _, _ = select(self._connections, [], [], TIMEOUT)
+            if readlist:
+                conn = readlist[0]
+
+                if conn.receive():
+                    self._process_message(conn.get_next_message())
+                else:
+                    if self.on_disconnect_callback:
+                        self.on_disconnect_callback(conn.get_peer_name()[0])
+                    self._tear_down_connection(conn)
+        else:
+            time.sleep(TIMEOUT)
 
     def _accept_loop(self):
         server_socket = socket(AF_INET, SOCK_STREAM)
@@ -188,11 +240,14 @@ class Network:
             except timeout:
                 pass
             else:
-                self._setup_connection(client_socket)
+                self._schedule_connect(client_socket)
         server_socket.close()
 
-    def _setup_connection(self, conn):
-        self._connections.add(Connection(conn))
+    def _schedule_connect(self, sock):
+        self._connect_queue.put(Connection(sock))
+
+    def _schedule_disconnect(self, address, port):
+        self._disconnect_queue.put((address, port))
 
     def _tear_down_connection(self, conn):
         conn.close()

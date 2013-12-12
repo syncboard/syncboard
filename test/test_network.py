@@ -59,8 +59,7 @@ class TestSimple(unittest.TestCase):
         self.n2.set_clipboard('test')
         time.sleep(WAIT_TIME)
 
-        disconnected = self.n2.disconnect('localhost', self.port1)
-        self.assertTrue(disconnected)
+        self.n2.disconnect('localhost', self.port1)
         time.sleep(WAIT_TIME)
 
         m = "test %d" % random.randint(0, 1000)
