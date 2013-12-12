@@ -17,6 +17,8 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
+from socket import gethostbyname
+
 MAX_ALIAS_LENGTH = 50
 MAX_ADDRESS_LENGTH = 15
 
@@ -31,6 +33,7 @@ class ConnectionManager:
         return None
 
     def new_connection(self, alias, address, status=None):
+        address = gethostbyname(address)
         if not status:
             #status = Connection.PENDING
             status = Connection.CONNECTED
