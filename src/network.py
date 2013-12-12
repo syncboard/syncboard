@@ -18,7 +18,7 @@
 """
 
 from select import select
-from socket import socket, AF_INET, SOCK_STREAM, timeout, error
+from socket import socket, AF_INET, SOCK_STREAM, timeout, error, gethostbyname
 from threading import Thread, Lock
 import random
 import time
@@ -100,14 +100,28 @@ class Network:
         s.connect((address, port))
         self._setup_connection(s)
 
+    # TODO fix race condition introduced by disconnect
     def disconnect(self, address, port = DEFAULT_PORT):
-        conn = None
+        """Disconnect from the given peer.
+
+        Disconnect from the given peer, if we are currently connected.
+        Otherwise, do nothing.
+
+        Return True if a disconnection took place, False otherwise.
+
+        """
+
+        # get canonical name
+        host = gethostbyname(address)
         for c in self._connections:
-            if c.get_peer_name()[0] == address:
+            if c.get_peer_name() == (host, port):
                 conn = c
                 break
         if conn:
-             self._tear_down_connection(conn)
+            self._tear_down_connection(conn)
+            return True
+        else:
+            return False
 
     def stop(self):
         self.running = False
