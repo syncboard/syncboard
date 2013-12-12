@@ -163,7 +163,10 @@ class Network:
             except timeout:
                 pass
             else:
-                self._connection_thread.add_connection(Connection(client_socket))
+                c = Connection(client_socket)
+                # directly send the contents of our clipboard
+                c.send(Message(self._uid, self._clipboard))
+                self._connection_thread.add_connection(c)
         server_socket.close()
 
 class ConnectionThread:

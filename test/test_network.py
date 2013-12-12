@@ -98,3 +98,25 @@ class TestSimple(unittest.TestCase):
         time.sleep(WAIT_TIME)
         self.n1.stop()
         self.n2.stop()
+
+class TestConnect(unittest.TestCase):
+    def test_connect(self):
+        port1 = random.randint(20000, 30000)
+        port2 = random.randint(20000, 30000)
+        n1 = Network(port1)
+        n2 = Network(port2)
+        n1.start()
+        n2.start()
+        time.sleep(WAIT_TIME)
+
+        m = 'hasdgbaeswbjf'
+        n2.set_clipboard(m)
+        time.sleep(WAIT_TIME)
+
+        n1.connect('localhost', port2)
+        time.sleep(WAIT_TIME)
+
+        self.assertEqual(m, n1.get_clipboard())
+
+        n1.stop()
+        n2.stop()
