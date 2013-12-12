@@ -116,12 +116,16 @@ class Network:
         s.connect((address, port))
         self._connection_thread.add_connection(Connection(s))
 
-    # TODO fix race condition introduced by disconnect
-    def disconnect(self, address, port = DEFAULT_PORT):
+    def disconnect(self, address, port = None):
         """Disconnect from the given peer.
 
         Disconnect from the given peer, if we are currently connected.
         Otherwise, do nothing.
+
+        If a port number is given, disconnect from the peer that is connected
+        from the given port. Otherwise, disconnect from any peer at the given
+        address. Note that if no port is given, behavior is undefined if there
+        are connections to multiple peers at the given address.
 
         """
         self._connection_thread.schedule_disconnect(address, port)
@@ -155,7 +159,7 @@ class Network:
             try:
                 client_socket, address = server_socket.accept()
                 if self._on_connect_callback:
-                    self._on_connect_callback(address[0])
+                    self._on_connect_callback(*address)
             except timeout:
                 pass
             else:
@@ -179,8 +183,11 @@ class ConnectionThread:
         self._thread = Thread(target=self._loop)
         self._thread.daemon = True
 
+        # Queue of Message objects
         self._message_queue = Queue()
+        # Queue of Connection objects to be added to _connections
         self._connection_queue = Queue()
+        # Queue of (address, port) pairs indicating peers to disconnect from
         self._disconnect_queue = Queue()
 
         self._running = False
@@ -249,7 +256,14 @@ class ConnectionThread:
 
                 conn = None
                 for c in self._connections:
-                    if c.get_peer_name() == (host, port):
+
+                    # only enforce equal ports if a port was given
+                    if port is None:
+                        condition = c.get_peer_name()[0] == host
+                    else:
+                        condition = c.get_peer_name(0) == (host, port)
+
+                    if condition:
                         conn = c
                         break
                 if conn:

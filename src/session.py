@@ -47,7 +47,7 @@ class Session:
                                 dis_callback=self._disconnect_request)
         self._network.start()
 
-    def _new_connection_request(self, address):
+    def _new_connection_request(self, address, port):
         conn = self._con_mgr.get_connection(address)
         if conn:
             #conn.status = Connection.REQUEST

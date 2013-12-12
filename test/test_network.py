@@ -60,7 +60,7 @@ class TestSimple(unittest.TestCase):
         time.sleep(WAIT_TIME)
         self.assertEqual(self.n1.get_clipboard(), 'test')
 
-        self.n2.disconnect('localhost', self.port1)
+        self.n2.disconnect('localhost')
         time.sleep(WAIT_TIME)
 
         m = "test %d" % random.randint(0, 1000)
@@ -74,7 +74,7 @@ class TestSimple(unittest.TestCase):
         time.sleep(WAIT_TIME)
         self.assertEqual(self.n1.get_clipboard(), 'test')
 
-        self.n1.disconnect('localhost', self.port2)
+        self.n1.disconnect('localhost')
         time.sleep(WAIT_TIME)
 
         m = "test %d" % random.randint(0, 1000)
