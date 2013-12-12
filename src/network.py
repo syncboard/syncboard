@@ -51,6 +51,17 @@ class Network:
 
     def __init__(self, port = DEFAULT_PORT,
                  con_callback = None, dis_callback = None):
+        """Initialize the network object, arranging for it to listen on the
+        given port.
+
+        In order for network activity to actually start, the start() method must
+        be called.
+
+        The connect and disconnect callbacks will be called whenever a peer
+        closes the connection. The argument will be the remote address, in
+        canonical form. These callbacks may occur in any thread.
+
+        """
         # UID used mostly for conflict resolution
         self.uid = random.randint(0, 0xFFFFFFFF)
 
@@ -143,10 +154,12 @@ class Network:
                 if readlist:
                     conn = readlist[0]
 
-                    if not conn.receive():
+                    if conn.receive():
+                        self._process_message(conn.get_next_message())
+                    else:
+                        if self.on_disconnect_callback:
+                            self.on_disconnect_callback(conn.get_peer_name()[0])
                         self._tear_down_connection(conn)
-                        continue
-                    self._process_message(conn.get_next_message())
             else:
                 time.sleep(TIMEOUT)
 
@@ -182,8 +195,6 @@ class Network:
         self._connections.add(Connection(conn))
 
     def _tear_down_connection(self, conn):
-        if self.on_disconnect_callback:
-            self.on_disconnect_callback(conn.get_peer_name()[0])
         conn.close()
         self._connections.remove(conn)
 
