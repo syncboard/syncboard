@@ -55,11 +55,26 @@ class TestSimple(unittest.TestCase):
 
         self.assertEqual(self.n2.get_clipboard(), m2)
 
-    def test_disconnect_client(self):
+    def test_disconnect_from_client(self):
         self.n2.set_clipboard('test')
         time.sleep(WAIT_TIME)
+        self.assertEqual(self.n1.get_clipboard(), 'test')
 
         self.n2.disconnect('localhost', self.port1)
+        time.sleep(WAIT_TIME)
+
+        m = "test %d" % random.randint(0, 1000)
+        self.n2.set_clipboard(m)
+        time.sleep(WAIT_TIME)
+
+        self.assertNotEqual(self.n1.get_clipboard(), m)
+
+    def test_disconnect_from_server(self):
+        self.n2.set_clipboard('test')
+        time.sleep(WAIT_TIME)
+        self.assertEqual(self.n1.get_clipboard(), 'test')
+
+        self.n1.disconnect('localhost', self.port2)
         time.sleep(WAIT_TIME)
 
         m = "test %d" % random.randint(0, 1000)
