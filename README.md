@@ -3,6 +3,22 @@ syncboard
 
 An open source, cross-platform clipboard syncing tool
 
+The intent is for a person using multiple computers concurrently to be able to
+easily transfer the clipboard contents between them.
+
+It currently works with two computers, but it will not work well with more than
+two.
+
+Running
+=======
+
+To run syncboard, go into the src directory, and run:
+
+    python gui.py
+
+Double clicking the gui.py file may also work, depending on your system's
+configuration.
+
 Testing
 =======
 
